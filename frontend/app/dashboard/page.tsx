@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/nav";
-import { Badge, ErrorNote, Spinner } from "@/components/ui";
+import { Badge, ErrorNote, SectionLabel, Spinner } from "@/components/ui";
 import { getToken, listProjects } from "@/lib/api";
 import { DOMAINS } from "@/lib/properties";
 import { Project } from "@/lib/types";
@@ -29,34 +29,48 @@ export default function Dashboard() {
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-6xl px-4 py-10">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">Your projects</h1>
-          <Link href="/projects/new" className="btn-primary">+ New project</Link>
+      <main className="mx-auto max-w-6xl px-4 py-12">
+        <div className="reveal mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <SectionLabel>Laboratory</SectionLabel>
+            <h1 className="font-display text-4xl text-ink">Your projects</h1>
+          </div>
+          <Link href="/projects/new" className="btn-primary">
+            + New project
+          </Link>
         </div>
 
         {error && <ErrorNote message={error} />}
         {!projects && !error && <Spinner label="Loading projects…" />}
 
         {projects && projects.length === 0 && (
-          <div className="card p-10 text-center">
-            <p className="text-slate-600">No projects yet.</p>
-            <Link href="/projects/new" className="btn-primary mt-4">
+          <div className="card reveal p-14 text-center">
+            <p className="tagline text-lg">The bench is empty.</p>
+            <p className="mt-2 text-sm text-dim">
+              Define a property profile and let the engine search.
+            </p>
+            <Link href="/projects/new" className="btn-primary mt-6 inline-flex">
               Design your first material
             </Link>
           </div>
         )}
 
         {projects && projects.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((p) => (
-              <Link key={p.id} href={`/projects/${p.id}`} className="card p-5 transition hover:border-brand-400 hover:shadow-md">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-900">{p.name}</h3>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((p, i) => (
+              <Link
+                key={p.id}
+                href={`/projects/${p.id}`}
+                className="card card-hover reveal p-6"
+                style={{ "--d": `${i * 70}ms` } as React.CSSProperties}
+              >
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <h3 className="font-display text-xl leading-snug text-ink">{p.name}</h3>
                   <Badge>{DOMAIN_LABEL[p.domain] || p.domain}</Badge>
                 </div>
-                <p className="text-xs text-slate-400">
-                  {new Date(p.created_at).toLocaleDateString()} · {p.property_targets.length} targets
+                <p className="font-mono text-[11px] tracking-wide text-faint">
+                  {new Date(p.created_at).toLocaleDateString()} · {p.property_targets.length}{" "}
+                  targets
                 </p>
               </Link>
             ))}
