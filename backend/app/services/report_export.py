@@ -109,11 +109,12 @@ def build_pdf(project: dict, candidates: list[dict]) -> bytes:
         story += [Spacer(1, 6 * mm), Paragraph("Synthesis outlook (top candidates)", styles["Heading2"])]
         for c in routed[:5]:
             route = c["synthesis_route"]
+            coverage = route.get("largest_block_pct")
+            coverage_txt = f", largest block {coverage:.0f}% of skeleton" if coverage else ""
             story.append(
                 Paragraph(
                     f"<b>Rank {c['rank']}</b> — engine: {route['source_engine']}, "
-                    f"est. yield {route['estimated_yield']}%, green-chemistry score "
-                    f"{route['green_chemistry_score']}/100",
+                    f"{route.get('building_blocks', 0)} building blocks{coverage_txt}",
                     styles["Normal"],
                 )
             )

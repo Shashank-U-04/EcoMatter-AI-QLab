@@ -10,7 +10,7 @@ import logging
 
 import httpx
 from rdkit import Chem
-from rdkit.Chem import BRICS
+from rdkit.Chem import BRICS, Descriptors
 
 from ..config import RXN_API_KEY
 from .descriptors import compute_descriptors
@@ -74,25 +74,39 @@ def _local_brics_route(smiles: str) -> dict | None:
         },
     ]
 
-    # Heuristic economics: more precursors and rings -> costlier, lower yield.
-    step_penalty = len(precursors) * 6 + d["ring_count"] * 4
-    estimated_yield = max(30.0, 85.0 - step_penalty)
-    estimated_cost = round(min(95.0, 20.0 + step_penalty + d["exotic_atoms"] * 10), 1)
-    green = 60.0
-    green += 10 if d["halogen_count"] == 0 else -25
-    green += min(d["oxygen_fraction"] * 30, 12)  # condensation-friendly chemistry
-    green_score = round(max(5.0, min(95.0, green)), 1)
+    # Real, computable metrics — no invented yield/cost numbers. Largest-block
+    # coverage = fraction of the target's heavy-atom skeleton delivered by the
+    # single biggest building block (higher = more of it is pre-assembled).
+    product_heavy = max(mol.GetNumHeavyAtoms(), 1)
+    frag_heavy = [
+        fm.GetNumHeavyAtoms()
+        for fm in (Chem.MolFromSmiles(p) for p in precursors)
+        if fm is not None
+    ]
+    largest_block_pct = round(max(frag_heavy) / product_heavy * 100, 1) if frag_heavy else None
+
+    flags = []
+    if d["halogen_count"] == 0:
+        flags.append("Halide-free target - avoids halogenated reagents")
+    else:
+        flags.append(f"{int(d['halogen_count'])} halogen(s) - needs halide reagents")
+    if d["exotic_atoms"] > 0:
+        flags.append(f"{int(d['exotic_atoms'])} exotic heteroatom(s) - specialised reagents")
+    if d["stereo_centers"] > 0:
+        flags.append(f"{int(d['stereo_centers'])} stereocentre(s) - require stereocontrol")
+    if d["amide_groups"] > 0:
+        flags.append("Amide bond(s) - coupling agents (e.g. carbodiimides) typical")
 
     return {
         "source_engine": "brics-local",
         "steps": steps,
-        "estimated_cost": estimated_cost,
-        "estimated_yield": round(estimated_yield, 1),
-        "green_chemistry_score": green_score,
-        "confidence": 0.55,
+        "largest_block_pct": largest_block_pct,
+        "building_blocks": len(precursors),
+        "flags": flags,
         "note": (
-            "Template-based route from the local BRICS engine — a plausibility "
-            "sketch for screening, not a validated procedure."
+            "Retrosynthetic disconnection via RDKit BRICS. Metrics are computed "
+            "from structure (building-block count, skeleton coverage, reagent "
+            "flags) - a plausibility sketch for screening, not a validated procedure."
         ),
     }
 
@@ -131,10 +145,9 @@ def _ibm_rxn_route(smiles: str) -> dict | None:
         return {
             "source_engine": "ibm-rxn",
             "steps": steps,
-            "estimated_cost": 50.0,
-            "estimated_yield": round(float(first.get("confidence", 0.5)) * 100, 1),
-            "green_chemistry_score": 50.0,
-            "confidence": round(float(first.get("confidence", 0.5)), 2),
+            "largest_block_pct": None,
+            "building_blocks": len(steps),
+            "flags": [],
             "note": "Route predicted by IBM RXN for Chemistry (molecular transformer).",
         }
     except Exception as exc:

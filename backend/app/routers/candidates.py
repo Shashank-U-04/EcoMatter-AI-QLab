@@ -16,7 +16,7 @@ from ..schemas import (
 from ..security import get_current_user
 from ..services.descriptors import mol_from_smiles
 from ..services.explainability import build_explanation
-from ..services.rendering import smiles_to_svg
+from ..services.rendering import smiles_to_molblock_3d, smiles_to_svg
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
@@ -111,6 +111,22 @@ def candidate_image(
     return Response(content=svg, media_type="image/svg+xml")
 
 
+@router.get("/{candidate_id}/structure3d")
+def candidate_structure_3d(
+    candidate_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    candidate = _owned_candidate(candidate_id, user, db)
+    molblock = smiles_to_molblock_3d(candidate.smiles)
+    if molblock is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot generate a 3D conformer for this structure",
+        )
+    return Response(content=molblock, media_type="chemical/x-mdl-molfile")
+
+
 @router.get("/{candidate_id}/synthesis", response_model=SynthesisRouteOut)
 def candidate_synthesis(
     candidate_id: int,
@@ -128,9 +144,8 @@ def candidate_synthesis(
     return SynthesisRouteOut(
         source_engine=data["source_engine"],
         steps=data["steps"],
-        estimated_cost=data["estimated_cost"],
-        estimated_yield=data["estimated_yield"],
-        green_chemistry_score=data["green_chemistry_score"],
-        confidence=data["confidence"],
+        largest_block_pct=data.get("largest_block_pct"),
+        building_blocks=data.get("building_blocks", 0),
+        flags=data.get("flags", []),
         note=data.get("note", ""),
     )
