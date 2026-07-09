@@ -9,13 +9,64 @@ approximation.
 All scored properties live on a 0-100 scale where higher = more of the named
 quality (affordability means higher = cheaper to make).
 """
+import logging
 from dataclasses import dataclass
 
 from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors
 
 from .descriptors import compute_descriptors
 
+logger = logging.getLogger(__name__)
+
 MODEL_VERSION = "heuristic-v1"
+
+# Kitaigorodskii packing coefficient — organic crystals fill ~0.68 of space with
+# van der Waals volume; the rest is inter-molecular voids.
+_PACKING_FRACTION = 0.68
+# Density (g/cm3) = MW / (V_vdw[Å^3] * N_A * 1e-24) = MW / (V_vdw * 0.6022).
+_AVOGADRO_SCALE = 0.6022
+
+
+def compute_real_density(mol: Chem.Mol) -> float | None:
+    """Estimate bulk density (g/cm^3) from the RDKit 3D van der Waals volume.
+
+    A genuine physics-based computation from an embedded 3D conformer — not an
+    additive descriptor formula. Returns None if the molecule cannot be embedded.
+    """
+    try:
+        m = Chem.AddHs(mol)
+        if AllChem.EmbedMolecule(m, randomSeed=0xC0FFEE) != 0:
+            return None
+        vdw_volume = AllChem.ComputeMolVolume(m)  # Å^3, grid-based vdW volume
+        if vdw_volume <= 0:
+            return None
+        vdw_density = Descriptors.MolWt(mol) / (vdw_volume * _AVOGADRO_SCALE)
+        return round(vdw_density * _PACKING_FRACTION, 3)
+    except Exception:  # embedding/volume can fail on strained or exotic structures
+        logger.debug("3D density computation failed", exc_info=True)
+        return None
+
+
+def lightweight_from_density(density: float) -> "PropertyPrediction":
+    """Build the lightweight prediction from a real computed density.
+
+    Maps common polymer densities (~0.85 g/cm^3 PE → ~2.2 PTFE) onto 0-100 where
+    lighter = higher score.
+    """
+    value = _clamp((1.9 - density) * 95.0)
+    contributions = [
+        {"factor": f"3D-computed density {density} g/cm3", "direction": "up" if value >= 50 else "down", "points": round(value - 50, 1)},
+        {"factor": "Baseline", "direction": "up", "points": 50.0},
+    ]
+    # Real physical computation → higher confidence than the descriptor proxy.
+    return PropertyPrediction(
+        property_name="lightweight",
+        value=round(value, 1),
+        confidence=0.85,
+        contributions=contributions,
+        model_version="rdkit-3d-density-v1",
+    )
 
 PROPERTY_NAMES = [
     "biodegradability",
@@ -44,6 +95,7 @@ class PropertyPrediction:
     value: float
     confidence: float
     contributions: list[dict]  # [{factor, direction, points}]
+    model_version: str = "heuristic-v1"
 
 
 def _biodegradability(d: dict) -> tuple[float, list[dict]]:
