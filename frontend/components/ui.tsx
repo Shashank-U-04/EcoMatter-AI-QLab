@@ -18,8 +18,7 @@ export function ScoreBar({ value, label }: { value: number; label?: string }) {
           className="h-full rounded-full transition-[width] duration-700 ease-out"
           style={{
             width: `${pct}%`,
-            backgroundImage: "linear-gradient(90deg, #0f7a3d, #3ee06e, #b7f65c)",
-            boxShadow: "0 0 12px rgba(62,224,110,.5)",
+            backgroundImage: "linear-gradient(90deg, #1d8a4e, #3bbd6c)",
           }}
         />
       </div>
@@ -48,9 +47,21 @@ export function PropertyRow({
   );
 }
 
-export function Badge({ children }: { children: React.ReactNode }) {
+export function Badge({
+  children,
+  tone = "neutral",
+}: {
+  children: React.ReactNode;
+  tone?: "neutral" | "accent";
+}) {
+  const styles =
+    tone === "accent"
+      ? "border-ember-400/20 bg-ember-400/[0.07] text-ember-300"
+      : "border-edge2 bg-white/[0.04] text-dim";
   return (
-    <span className="inline-block rounded-full border border-ember-400/25 bg-ember-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ember-300">
+    <span
+      className={`inline-block rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${styles}`}
+    >
       {children}
     </span>
   );

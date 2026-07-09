@@ -19,8 +19,8 @@ body::before {
   pointer-events: none;
   transform: translateZ(0);
   background-image:
-    radial-gradient(1100px 500px at 85% -10%, rgba(62, 224, 110, 0.07), transparent 60%),
-    radial-gradient(900px 600px at -10% 110%, rgba(62, 224, 110, 0.05), transparent 55%);
+    radial-gradient(1100px 500px at 85% -10%, rgba(62, 224, 110, 0.035), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(62, 224, 110, 0.02), transparent 55%);
 }
 
 /* Film grain — keeps large dark surfaces from banding, adds texture */
@@ -30,13 +30,13 @@ body::after {
   inset: 0;
   z-index: 50;
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.02;
   transform: translateZ(0);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 ::selection {
-  background: rgba(62, 224, 110, 0.3);
+  background: rgba(62, 224, 110, 0.22);
 }
 
 /* ---------- Surfaces ---------- */
@@ -48,9 +48,8 @@ body::after {
 }
 
 .card-hover:hover {
-  border-color: rgba(62, 224, 110, 0.45);
-  box-shadow: 0 0 0 1px rgba(62, 224, 110, 0.2), 0 16px 60px rgba(0, 0, 0, 0.8),
-    0 0 44px rgba(62, 224, 110, 0.1);
+  border-color: rgba(62, 224, 110, 0.22);
+  box-shadow: 0 0 0 1px rgba(62, 224, 110, 0.1), 0 16px 60px rgba(0, 0, 0, 0.55);
   transform: translateY(-3px);
 }
 
@@ -79,15 +78,15 @@ body::after {
 
 .btn-primary {
   @apply btn text-[#04140a];
-  background-image: linear-gradient(115deg, #b7f65c, #3ee06e 45%, #0f7a3d);
+  background-image: linear-gradient(115deg, #8ede55, #35c464 45%, #14683a);
   background-size: 160% 100%;
   background-position: 0% 50%;
-  box-shadow: 0 2px 16px rgba(62, 224, 110, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  box-shadow: 0 2px 14px rgba(62, 224, 110, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
   background-position: 90% 50%;
-  box-shadow: 0 4px 28px rgba(62, 224, 110, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  box-shadow: 0 4px 22px rgba(62, 224, 110, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transform: translateY(-1px);
 }
 
@@ -98,7 +97,7 @@ body::after {
 .btn-ghost:hover:not(:disabled) {
   border-color: rgba(62, 224, 110, 0.5);
   color: #7ceb6d;
-  box-shadow: 0 0 24px rgba(62, 224, 110, 0.12);
+  box-shadow: 0 0 20px rgba(62, 224, 110, 0.06);
 }
 
 .input {
@@ -106,8 +105,8 @@ body::after {
 }
 
 .input:focus {
-  border-color: rgba(62, 224, 110, 0.6);
-  box-shadow: 0 0 0 3px rgba(62, 224, 110, 0.12);
+  border-color: rgba(62, 224, 110, 0.4);
+  box-shadow: 0 0 0 3px rgba(62, 224, 110, 0.08);
 }
 
 .label {
@@ -125,7 +124,7 @@ body::after {
   background-image: linear-gradient(
     90deg,
     rgba(62, 224, 110, 0.1) 25%,
-    rgba(183, 246, 92, 0.55) 50%,
+    rgba(183, 246, 92, 0.3) 50%,
     rgba(62, 224, 110, 0.1) 75%
   );
   background-size: 200% 100%;
