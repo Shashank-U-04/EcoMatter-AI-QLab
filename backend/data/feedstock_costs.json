@@ -1,0 +1,28 @@
+{
+  "_note": "Relative feedstock-cost anchors from approximate 2024-2025 bulk commodity prices (USD/kg). Used to compute a directional cost index, not a lab quote. Sources: bulk petrochemical/BTX market ranges, fine-chemical pricing norms.",
+  "base_usd_per_kg": 0.9,
+  "per_heavy_atom_usd": 0.05,
+  "motif_premium_usd_per_kg": {
+    "aromatic_ring": 0.4,
+    "fused_ring_system": 1.2,
+    "ester_group": 0.6,
+    "amide_group": 1.1,
+    "ether_group": 0.4,
+    "hydroxyl_group": 0.3,
+    "carbonate_group": 0.9,
+    "stereo_center": 3.5,
+    "chlorine_atom": 0.8,
+    "fluorine_atom": 6.0,
+    "bromine_iodine_atom": 4.0,
+    "exotic_atom": 9.0
+  },
+  "reference_prices": {
+    "ethylene_propylene_bulk": 0.7,
+    "benzene_BTX": 1.0,
+    "methanol": 0.5,
+    "acetic_acid": 0.8,
+    "adipic_acid": 1.8,
+    "hydrogen_fluoride": 3.0,
+    "chiral_catalyst_premium_note": "asymmetric synthesis/resolution adds several USD/kg per stereocentre"
+  }
+}
