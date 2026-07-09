@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/nav";
-import { BackLink, Badge, Disclaimer, ErrorNote, PropertyRow, Spinner } from "@/components/ui";
+import { BackLink, Badge, Disclaimer, ErrorNote, PropertyRow, SectionLabel, Spinner } from "@/components/ui";
 import { ApiError, fetchImageObjectUrl, getCandidate, getSynthesis, getToken } from "@/lib/api";
 import { PROPERTY_LABEL } from "@/lib/properties";
 import { CandidateDetail, SynthesisRoute } from "@/lib/types";
@@ -59,7 +59,7 @@ export default function CandidatePage() {
     return (
       <>
         <Nav />
-        <main className="mx-auto max-w-5xl px-4 py-8">
+        <main className="mx-auto max-w-5xl px-4 py-10">
           <BackLink href="/dashboard">Back to projects</BackLink>
           <div className="mt-6"><ErrorNote message={error} /></div>
         </main>
@@ -71,7 +71,7 @@ export default function CandidatePage() {
     return (
       <>
         <Nav />
-        <main className="mx-auto flex max-w-5xl justify-center px-4 py-24">
+        <main className="mx-auto flex max-w-5xl justify-center px-4 py-28">
           <Spinner label="Loading candidate…" />
         </main>
       </>
@@ -81,35 +81,48 @@ export default function CandidatePage() {
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto max-w-5xl px-4 py-10">
         <BackLink href={`/projects/${detail.project_id}`}>Back to results</BackLink>
 
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">Candidate #{detail.rank}</h1>
-          <Badge>score {detail.composite_score.toFixed(1)}</Badge>
-          <Badge>novelty {(detail.novelty_score * 100).toFixed(0)}%</Badge>
-          <span className="text-xs text-slate-400">{detail.generation_method}</span>
+        <div className="reveal mt-4">
+          <SectionLabel>Candidate profile</SectionLabel>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-4xl text-ink">
+              Candidate <span className="font-pixel font-black text-ember-400">#{detail.rank}</span>
+            </h1>
+            <Badge>score {detail.composite_score.toFixed(1)}</Badge>
+            <Badge>novelty {(detail.novelty_score * 100).toFixed(0)}%</Badge>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-faint">
+              {detail.generation_method}
+            </span>
+          </div>
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
           {/* 2D structure */}
-          <section className="card p-5">
-            <h2 className="font-semibold text-slate-800">Structure</h2>
-            <div className="mt-3 flex min-h-56 items-center justify-center rounded-lg bg-white">
+          <section className="card reveal p-6" style={{ "--d": "80ms" } as React.CSSProperties}>
+            <div className="overline">Structure</div>
+            <div className="mt-4 flex min-h-56 items-center justify-center overflow-hidden rounded-xl bg-[#f4f4ef] shadow-inner">
               {imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={imageUrl} alt={`2D structure of ${detail.smiles}`} className="max-h-64 w-auto" />
+                <img
+                  src={imageUrl}
+                  alt={`2D structure of ${detail.smiles}`}
+                  className="reveal max-h-64 w-auto"
+                />
               ) : (
                 <Spinner label="Rendering structure…" />
               )}
             </div>
-            <p className="mt-3 break-all font-mono text-xs text-slate-500">{detail.smiles}</p>
+            <p className="mt-4 break-all font-mono text-xs leading-relaxed text-dim">
+              {detail.smiles}
+            </p>
           </section>
 
           {/* Predicted properties with confidence */}
-          <section className="card p-5">
-            <h2 className="font-semibold text-slate-800">Predicted properties</h2>
-            <div className="mt-2 divide-y divide-slate-100">
+          <section className="card reveal p-6" style={{ "--d": "160ms" } as React.CSSProperties}>
+            <div className="overline">Predicted properties</div>
+            <div className="mt-2 divide-y divide-edge/50">
               {detail.predictions.map((p) => (
                 <PropertyRow
                   key={p.property_name}
@@ -119,25 +132,32 @@ export default function CandidatePage() {
                 />
               ))}
             </div>
-            <div className="mt-3"><Disclaimer /></div>
+            <div className="mt-4"><Disclaimer /></div>
           </section>
 
           {/* Explanation panel */}
-          <section className="card p-5">
-            <h2 className="font-semibold text-slate-800">Why this candidate ranked here</h2>
-            <p className="mt-2 text-sm text-slate-600">{detail.explanation.summary}</p>
+          <section className="card reveal p-6" style={{ "--d": "240ms" } as React.CSSProperties}>
+            <div className="overline">Why this candidate ranked here</div>
+            <p className="tagline mt-3 text-base">{detail.explanation.summary}</p>
 
             {detail.explanation.feature_importance.length > 0 && (
               <>
-                <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Top drivers — {PROPERTY_LABEL[detail.explanation.feature_importance[0].property || ""] || "primary target"}
+                <h3 className="overline mt-6">
+                  Top drivers —{" "}
+                  {PROPERTY_LABEL[detail.explanation.feature_importance[0].property || ""] ||
+                    "primary target"}
                 </h3>
-                <ul className="mt-2 space-y-1">
+                <ul className="mt-3 space-y-2">
                   {detail.explanation.feature_importance.map((f, i) => (
                     <li key={i} className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600">{f.factor}</span>
-                      <span className={f.direction === "up" ? "font-semibold text-emerald-600" : "font-semibold text-red-500"}>
-                        {f.direction === "up" ? "+" : "−"}{Math.abs(f.points).toFixed(0)} pts
+                      <span className="text-dim">{f.factor}</span>
+                      <span
+                        className={`font-mono font-bold ${
+                          f.direction === "up" ? "text-ember-300" : "text-red-400"
+                        }`}
+                      >
+                        {f.direction === "up" ? "+" : "−"}
+                        {Math.abs(f.points).toFixed(0)} pts
                       </span>
                     </li>
                   ))}
@@ -147,10 +167,13 @@ export default function CandidatePage() {
 
             {detail.explanation.trade_offs.length > 0 && (
               <>
-                <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Trade-offs</h3>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+                <h3 className="overline mt-6">Trade-offs</h3>
+                <ul className="mt-3 space-y-2 text-sm leading-relaxed text-dim">
                   {detail.explanation.trade_offs.map((t, i) => (
-                    <li key={i}>{t}</li>
+                    <li key={i} className="flex gap-2">
+                      <span className="text-ember-400">◆</span>
+                      {t}
+                    </li>
                   ))}
                 </ul>
               </>
@@ -158,22 +181,22 @@ export default function CandidatePage() {
           </section>
 
           {/* Similar known molecules */}
-          <section className="card p-5">
-            <h2 className="font-semibold text-slate-800">Similar known molecules</h2>
+          <section className="card reveal p-6" style={{ "--d": "320ms" } as React.CSSProperties}>
+            <div className="overline">Similar known molecules</div>
             {detail.explanation.similar_molecules.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="tagline mt-3 text-sm">
                 No close match in the reference set — a highly novel structure.
               </p>
             ) : (
-              <ul className="mt-2 divide-y divide-slate-100">
+              <ul className="mt-2 divide-y divide-edge/50">
                 {detail.explanation.similar_molecules.map((m) => (
-                  <li key={m.smiles} className="py-3">
-                    <div className="flex items-baseline justify-between">
-                      <span className="font-medium text-slate-800">{m.name}</span>
+                  <li key={m.smiles} className="py-4">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="font-display text-lg text-ink">{m.name}</span>
                       <Badge>{(m.similarity * 100).toFixed(0)}% similar</Badge>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">{m.note}</p>
-                    <p className="mt-1 break-all font-mono text-[11px] text-slate-400">{m.smiles}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-dim">{m.note}</p>
+                    <p className="mt-1.5 break-all font-mono text-[10px] text-faint">{m.smiles}</p>
                   </li>
                 ))}
               </ul>
@@ -182,22 +205,28 @@ export default function CandidatePage() {
         </div>
 
         {/* Synthesis route */}
-        <section className="card mt-6 p-5">
-          <h2 className="font-semibold text-slate-800">Recommended synthesis route</h2>
+        <section className="card reveal mt-6 p-6" style={{ "--d": "400ms" } as React.CSSProperties}>
+          <div className="overline">Recommended synthesis route</div>
 
           {!route && !routeMissing && (
-            <div className="mt-3"><Spinner label="Loading route…" /></div>
+            <div className="mt-4"><Spinner label="Loading route…" /></div>
           )}
 
           {routeMissing && (
-            <div className="mt-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-4 text-sm text-amber-200">
               No synthesis route was found for this candidate.{" "}
               {detail.next_candidate_id ? (
-                <Link href={`/candidates/${detail.next_candidate_id}`} className="font-semibold underline">
+                <Link
+                  href={`/candidates/${detail.next_candidate_id}`}
+                  className="font-semibold text-ember-300 underline decoration-ember-400/40 underline-offset-4 transition-colors hover:text-ember-200"
+                >
                   Try the next-best candidate →
                 </Link>
               ) : (
-                <Link href={`/projects/${detail.project_id}`} className="font-semibold underline">
+                <Link
+                  href={`/projects/${detail.project_id}`}
+                  className="font-semibold text-ember-300 underline decoration-ember-400/40 underline-offset-4 transition-colors hover:text-ember-200"
+                >
                   Back to the ranked list →
                 </Link>
               )}
@@ -206,41 +235,49 @@ export default function CandidatePage() {
 
           {route && (
             <>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Badge>engine: {route.source_engine}</Badge>
-                <Badge>est. yield {(route.estimated_yield * 100).toFixed(0)}%</Badge>
+                <Badge>est. yield {route.estimated_yield.toFixed(0)}%</Badge>
                 <Badge>green score {route.green_chemistry_score.toFixed(0)}/100</Badge>
                 <Badge>confidence {(route.confidence * 100).toFixed(0)}%</Badge>
               </div>
-              <ol className="mt-4 space-y-3">
-                {route.steps.map((s) => (
-                  <li key={s.step} className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+              <ol className="mt-6 space-y-5">
+                {route.steps.map((s, i) => (
+                  <li
+                    key={s.step}
+                    className="reveal flex gap-4"
+                    style={{ "--d": `${i * 100}ms` } as React.CSSProperties}
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-ember-400/30 bg-ember-400/10 font-pixel text-sm font-black text-ember-300">
                       {s.step}
                     </span>
-                    <div>
-                      <p className="text-sm text-slate-700">{s.description}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm leading-relaxed text-ink">{s.description}</p>
                       {s.precursors.length > 0 && (
-                        <p className="mt-0.5 break-all font-mono text-[11px] text-slate-400">
+                        <p className="mt-1 break-all font-mono text-[10px] text-faint">
                           precursors: {s.precursors.join(" + ")}
                         </p>
                       )}
                       {s.reaction_hint && (
-                        <p className="mt-0.5 text-xs text-slate-500">{s.reaction_hint}</p>
+                        <p className="mt-1 text-xs text-dim">{s.reaction_hint}</p>
                       )}
                     </div>
                   </li>
                 ))}
               </ol>
-              {route.note && <p className="mt-4 text-xs text-slate-400">{route.note}</p>}
+              {route.note && <p className="tagline mt-6 text-xs">{route.note}</p>}
             </>
           )}
         </section>
 
         {detail.next_candidate_id && (
-          <div className="mt-6 text-right">
-            <Link href={`/candidates/${detail.next_candidate_id}`} className="text-brand-600 hover:underline">
-              Next candidate →
+          <div className="mt-8 text-right">
+            <Link
+              href={`/candidates/${detail.next_candidate_id}`}
+              className="group inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-ember-300 transition-colors hover:text-ember-200"
+            >
+              Next candidate
+              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
             </Link>
           </div>
         )}
