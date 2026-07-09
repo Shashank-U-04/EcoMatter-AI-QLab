@@ -1,0 +1,33 @@
+{
+  "name": "Aqueous solubility (logS)",
+  "algorithm": "RandomForestRegressor (300 trees)",
+  "dataset": "ESOL / Delaney (1128 molecules, measured log mol/L)",
+  "features": [
+    "mol_weight",
+    "logp",
+    "tpsa",
+    "heavy_atoms",
+    "rotatable_bonds",
+    "rotatable_fraction",
+    "ring_count",
+    "aromatic_rings",
+    "aromatic_fraction",
+    "fraction_csp3",
+    "hetero_fraction",
+    "oxygen_fraction",
+    "nitrogen_fraction",
+    "ester_groups",
+    "amide_groups",
+    "carbonate_groups",
+    "hydroxyl_groups",
+    "ether_groups",
+    "halogen_count",
+    "exotic_atoms",
+    "stereo_centers"
+  ],
+  "n_train": 902,
+  "n_test": 226,
+  "test_r2": 0.879,
+  "test_rmse_log_units": 0.757,
+  "target_units": "log10(solubility in mol/L)"
+}
