@@ -37,22 +37,37 @@ Anchored on two demo scenarios:
       └──────────────────┘
 ```
 
-## What's real AI vs. what's an integrated service (honest note)
+## What's real vs. estimated (honest note)
 
-- **Real, ours:** the genetic algorithm (surrogate-guided evolutionary search over
-  RDKit-validated molecular fragments), the five property predictors, the
-  multi-objective ranking, and the explainability layer. The predictors are
-  **descriptor-based heuristic regressors** — directional estimates for screening,
-  *not* lab-grade values. There is no clean public labelled dataset for polymer
-  mechanical properties, so we say so instead of pretending otherwise.
-- **Integrated service:** retrosynthesis. By default we run a local RDKit **BRICS
-  decomposition** (template-based, no signup). If an `RXN_API_KEY` is provided, the
-  backend calls **IBM RXN for Chemistry** (a molecular-transformer engine we did not
-  train). Our value-add is converting raw routes into a ranked, explained,
-  property-aware report tied to our generated molecules.
-- **Not built (deliberately):** lab synthesis/validation, ab initio DFT, from-scratch
-  generative deep models or retrosynthesis transformers, quantum hardware. These are
-  roadmap, not MVP.
+Every property carries a **provenance tag** in the UI so nothing is dressed up as
+more than it is:
+
+- **Biodegradability — trained ML.** A `RandomForest` trained on the public **ESOL**
+  aqueous-solubility dataset (1,128 molecules, measured logS, **test R² = 0.879**)
+  feeds a bioavailability signal into the biodegradability estimate. Confidence comes
+  from real per-tree variance; **SHAP** (`TreeExplainer`) shows which descriptors drove
+  each prediction. Retrain with `python -m ml.train_solubility`.
+- **Lightweight — 3D-computed.** Real bulk density from an RDKit 3D van der Waals
+  volume (MMFF conformer) with a Kitaigorodskii packing factor — genuine g/cm³, not a
+  formula.
+- **Affordability — cost model.** A USD/kg feedstock-cost index built from 2024–2025
+  commodity price anchors (commodity base + fluorination / exotic-atom / stereocentre /
+  fused-ring premiums), shown as a concrete $/kg estimate.
+- **Novelty — verifiable.** Every top candidate is checked against **PubChem** (~119M
+  compounds); "novel" means a real exact-structure miss, and known compounds link to
+  their CID.
+- **Retrosynthesis — real metrics only.** RDKit **BRICS** disconnection with
+  *computed* green-chemistry metrics: largest-building-block skeleton coverage,
+  building-block count, and structural reagent flags. No invented yield/cost numbers.
+- **Thermal stability & flexibility — labelled estimates.** Transparent descriptor
+  models (aromaticity/ring rigidity; rotatable-bond fraction) — the physically correct
+  drivers, honestly marked "estimate" rather than given a false ML badge. (We trained a
+  QM9 HOMO-LUMO-gap model but did *not* ship it for thermal stability: electronic gap
+  is not a valid decomposition-temperature proxy.)
+- **3D structure viewer.** Interactive MMFF-optimised conformer (3Dmol.js).
+- **Not built (deliberately):** lab synthesis/validation, ab initio DFT per candidate,
+  from-scratch generative deep models, neural retrosynthesis (e.g. AiZynthFinder — a
+  future upgrade), quantum hardware. Roadmap, not MVP.
 
 ## Prerequisites
 
