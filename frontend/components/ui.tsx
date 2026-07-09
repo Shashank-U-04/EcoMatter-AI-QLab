@@ -28,6 +28,7 @@ export function ScoreBar({ value, label }: { value: number; label?: string }) {
 
 const MODEL_TAGS: Record<string, string> = {
   "rdkit-3d-density-v1": "3D-computed",
+  "ml-hybrid-v1": "trained ML",
   "heuristic-v1": "estimate",
 };
 
