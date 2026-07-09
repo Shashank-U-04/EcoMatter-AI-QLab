@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import CORS_ORIGINS, STORAGE_DIR
 from .database import Base, apply_schema_patches, engine
-from .routers import auth, candidates, projects, reports
+from .routers import auth, candidates, meta, projects, reports
 
 logging.basicConfig(level=logging.INFO)
 
@@ -35,6 +35,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(candidates.router)
 app.include_router(reports.router)
+app.include_router(meta.router)
 
 
 @app.get("/health", tags=["meta"])
