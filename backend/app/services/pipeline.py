@@ -27,7 +27,14 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
         run.started_at = datetime.now(timezone.utc)
         db.commit()
 
-        raw_candidates = run_generation(domain, targets)
+        def report_progress(gen: int, total: int, best: float, valid: int) -> None:
+            run.progress_generation = gen
+            run.progress_total = total
+            run.progress_best_fitness = round(best, 4)
+            run.progress_valid_count = valid
+            db.commit()
+
+        raw_candidates = run_generation(domain, targets, progress_cb=report_progress)
 
         enriched = []
         for item in raw_candidates:

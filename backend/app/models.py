@@ -64,6 +64,11 @@ class GenerationRun(Base):
     error: Mapped[str] = mapped_column(Text, default="")
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Live GA telemetry, updated once per generation while running.
+    progress_generation: Mapped[int] = mapped_column(Integer, default=0)
+    progress_total: Mapped[int] = mapped_column(Integer, default=0)
+    progress_best_fitness: Mapped[float] = mapped_column(Float, default=0.0)
+    progress_valid_count: Mapped[int] = mapped_column(Integer, default=0)
 
     project: Mapped[Project] = relationship(back_populates="runs")
     candidates: Mapped[list["Candidate"]] = relationship(
@@ -79,6 +84,7 @@ class Candidate(Base):
     smiles: Mapped[str] = mapped_column(Text)
     generation_method: Mapped[str] = mapped_column(String(80), default="ga-rdkit-v1")
     novelty_score: Mapped[float] = mapped_column(Float, default=0.0)
+    starred: Mapped[int] = mapped_column(Integer, default=0)  # 0/1 shortlist flag
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     run: Mapped[GenerationRun] = relationship(back_populates="candidates")

@@ -67,9 +67,17 @@ class RunStatusOut(BaseModel):
     error: str = ""
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    progress_generation: int = 0
+    progress_total: int = 0
+    progress_best_fitness: float = 0.0
+    progress_valid_count: int = 0
 
     class Config:
         from_attributes = True
+
+
+class ProjectRename(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
 
 
 class PredictionOut(BaseModel):
@@ -88,6 +96,7 @@ class CandidateSummary(BaseModel):
     novelty_score: float
     composite_score: float
     rank: int
+    starred: bool = False
     predictions: list[PredictionOut]
 
 

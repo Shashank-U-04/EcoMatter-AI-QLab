@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import CORS_ORIGINS, STORAGE_DIR
-from .database import Base, engine
+from .database import Base, apply_schema_patches, engine
 from .routers import auth, candidates, projects, reports
 
 logging.basicConfig(level=logging.INFO)
@@ -15,6 +15,7 @@ from . import models  # noqa: E402,F401
 
 STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 Base.metadata.create_all(bind=engine)
+apply_schema_patches()
 
 app = FastAPI(
     title="EcoMatter AI-QLab API",

@@ -20,3 +20,27 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# Columns added after the initial release; create_all() will not add columns to
+# existing tables, so patch them in with ALTER TABLE (no-op if already present).
+_SCHEMA_PATCHES = [
+    ("generation_runs", "progress_generation", "INTEGER DEFAULT 0"),
+    ("generation_runs", "progress_total", "INTEGER DEFAULT 0"),
+    ("generation_runs", "progress_best_fitness", "FLOAT DEFAULT 0"),
+    ("generation_runs", "progress_valid_count", "INTEGER DEFAULT 0"),
+    ("candidates", "starred", "INTEGER DEFAULT 0"),
+]
+
+
+def apply_schema_patches() -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for table, column, ddl in _SCHEMA_PATCHES:
+            if table not in inspector.get_table_names():
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            if column not in existing:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))

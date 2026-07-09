@@ -8,6 +8,7 @@ every surviving structure chemically valid.
 import logging
 import random
 import time
+from typing import Callable
 
 from rdkit import Chem, RDLogger
 from rdkit.Chem import BRICS
@@ -97,6 +98,7 @@ def run_generation(
     max_candidates: int | None = None,
     time_budget_seconds: int | None = None,
     rng: random.Random | None = None,
+    progress_cb: Callable[[int, int, float, int], None] | None = None,
 ) -> list[dict]:
     """Run the GA and return the final deduplicated candidate pool.
 
@@ -136,7 +138,16 @@ def run_generation(
 
     # --- Evolution loop ---
     scored = {smi: fitness(mol, targets) for smi, mol in population.items()}
-    for _ in range(generations):
+
+    def _report(gen: int) -> None:
+        if progress_cb is not None and scored:
+            try:
+                progress_cb(gen, generations, max(scored.values()), len(population))
+            except Exception:  # telemetry must never kill the run
+                logger.debug("progress callback failed", exc_info=True)
+
+    _report(0)
+    for gen_index in range(generations):
         if time.monotonic() > deadline:
             logger.info("GA time budget reached; returning best-so-far")
             break
@@ -162,6 +173,7 @@ def run_generation(
         survivors = sorted(population, key=lambda s: -scored[s])[:population_size]
         population = {s: population[s] for s in survivors}
         scored = {s: scored[s] for s in survivors}
+        _report(gen_index + 1)
 
     best = sorted(population, key=lambda s: -scored[s])[:max_candidates]
     return [
