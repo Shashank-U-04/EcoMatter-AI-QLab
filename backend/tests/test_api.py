@@ -66,3 +66,22 @@ def test_full_pipeline(auth_client):
         r = auth_client.get(f"/projects/{project_id}/report", params={"format": fmt})
         assert r.status_code == 200, (fmt, r.text[:200])
         assert len(r.content) > 0
+
+    # Run telemetry was recorded and the run history lists it.
+    assert run["progress_total"] > 0
+    assert run["progress_best_fitness"] > 0
+    history = auth_client.get(f"/projects/{project_id}/runs").json()
+    assert len(history) == 1 and history[0]["status"] == "completed"
+
+    # Starring toggles on and off and shows up in the list.
+    assert auth_client.patch(f"/candidates/{cid}/star").json()["starred"] is True
+    starred_list = auth_client.get(f"/projects/{project_id}/candidates").json()
+    assert next(c for c in starred_list if c["id"] == cid)["starred"] is True
+    assert auth_client.patch(f"/candidates/{cid}/star").json()["starred"] is False
+
+    # Rename then delete the project; everything under it disappears.
+    renamed = auth_client.patch(f"/projects/{project_id}", json={"name": "Renamed film"})
+    assert renamed.json()["name"] == "Renamed film"
+    assert auth_client.delete(f"/projects/{project_id}").status_code == 204
+    assert auth_client.get(f"/projects/{project_id}").status_code == 404
+    assert auth_client.get(f"/candidates/{cid}").status_code == 404
