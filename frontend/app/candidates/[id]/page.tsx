@@ -1,13 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/nav";
 import { BackLink, Badge, Disclaimer, ErrorNote, PropertyRow, SectionLabel, Spinner } from "@/components/ui";
-import { ApiError, fetchImageObjectUrl, getCandidate, getSynthesis, getToken } from "@/lib/api";
+import {
+  ApiError,
+  fetchImageObjectUrl,
+  getCandidate,
+  getModelCards,
+  getSynthesis,
+  getToken,
+  ModelCard,
+} from "@/lib/api";
 import { PROPERTY_LABEL } from "@/lib/properties";
 import { CandidateDetail, SynthesisRoute } from "@/lib/types";
+
+const Molecule3D = dynamic(() => import("@/components/molecule3d"), { ssr: false });
 
 export default function CandidatePage() {
   const router = useRouter();
@@ -18,6 +29,8 @@ export default function CandidatePage() {
   const [route, setRoute] = useState<SynthesisRoute | null>(null);
   const [routeMissing, setRouteMissing] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const [view3d, setView3d] = useState(false);
+  const [modelCards, setModelCards] = useState<ModelCard[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -49,6 +62,10 @@ export default function CandidatePage() {
         if (e instanceof ApiError && e.status === 404) setRouteMissing(true);
         else setError(e instanceof Error ? e.message : "Could not load synthesis route");
       });
+
+    getModelCards()
+      .then((r) => setModelCards(r.models))
+      .catch(() => {/* model cards are optional context */});
 
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -121,24 +138,53 @@ export default function CandidatePage() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          {/* 2D structure */}
+          {/* Structure — 2D SVG / interactive 3D conformer */}
           <section className="card reveal p-6" style={{ "--d": "80ms" } as React.CSSProperties}>
-            <div className="overline">Structure</div>
-            <div className="mt-4 flex min-h-56 items-center justify-center overflow-hidden rounded-xl bg-[#f4f4ef] shadow-inner">
-              {imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={imageUrl}
-                  alt={`2D structure of ${detail.smiles}`}
-                  className="reveal max-h-64 w-auto"
-                />
+            <div className="flex items-center justify-between">
+              <div className="overline">Structure</div>
+              <div className="flex overflow-hidden rounded-full border border-edge2">
+                {(["2D", "3D"] as const).map((mode) => {
+                  const active = (mode === "3D") === view3d;
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => setView3d(mode === "3D")}
+                      className={`px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
+                        active ? "bg-ember-400/15 text-ember-300" : "text-faint hover:text-dim"
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-4">
+              {view3d ? (
+                <Molecule3D candidateId={candidateId} />
               ) : (
-                <Spinner label="Rendering structure…" />
+                <div className="flex min-h-56 items-center justify-center overflow-hidden rounded-xl bg-[#f4f4ef] shadow-inner">
+                  {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imageUrl}
+                      alt={`2D structure of ${detail.smiles}`}
+                      className="reveal max-h-64 w-auto"
+                    />
+                  ) : (
+                    <Spinner label="Rendering structure…" />
+                  )}
+                </div>
               )}
             </div>
             <p className="mt-4 break-all font-mono text-xs leading-relaxed text-dim">
               {detail.smiles}
             </p>
+            {view3d && (
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-faint">
+                RDKit MMFF-optimised conformer · drag to rotate
+              </p>
+            )}
           </section>
 
           {/* Predicted properties with confidence */}
@@ -155,7 +201,23 @@ export default function CandidatePage() {
                 />
               ))}
             </div>
-            <div className="mt-4"><Disclaimer /></div>
+            {detail.explanation.cost_estimate_usd_per_kg !== null && (
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-edge2 bg-white/[0.03] px-4 py-2.5">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-dim">
+                  Est. feedstock cost
+                </span>
+                <span className="font-mono text-sm font-bold text-ink">
+                  ${detail.explanation.cost_estimate_usd_per_kg.toFixed(2)}
+                  <span className="ml-1 text-[11px] font-normal text-faint">/kg</span>
+                </span>
+              </div>
+            )}
+            {modelCards.map((m) => (
+              <p key={m.name} className="mt-2 font-mono text-[10px] leading-relaxed text-faint">
+                {m.name}: {m.algorithm.split(" (")[0]} · test R²={m.test_r2} · {m.dataset}
+              </p>
+            ))}
+            <div className="mt-3"><Disclaimer /></div>
           </section>
 
           {/* Explanation panel */}
@@ -181,6 +243,33 @@ export default function CandidatePage() {
                       >
                         {f.direction === "up" ? "+" : "−"}
                         {Math.abs(f.points).toFixed(0)} pts
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {detail.explanation.ml_drivers.length > 0 && (
+              <>
+                <h3 className="overline mt-6">
+                  Trained-model drivers · solubility SHAP
+                </h3>
+                <p className="mt-1 text-[11px] leading-relaxed text-faint">
+                  Descriptors that most moved the trained aqueous-solubility model, which
+                  informs biodegradability.
+                </p>
+                <ul className="mt-3 space-y-2">
+                  {detail.explanation.ml_drivers.map((f, i) => (
+                    <li key={i} className="flex items-center justify-between text-sm">
+                      <span className="text-dim">{f.factor}</span>
+                      <span
+                        className={`font-mono font-bold ${
+                          f.direction === "up" ? "text-ember-300" : "text-red-400"
+                        }`}
+                      >
+                        {f.direction === "up" ? "+" : "−"}
+                        {Math.abs(f.impact).toFixed(2)}
                       </span>
                     </li>
                   ))}
@@ -260,10 +349,23 @@ export default function CandidatePage() {
             <>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge>engine: {route.source_engine}</Badge>
-                <Badge>est. yield {route.estimated_yield.toFixed(0)}%</Badge>
-                <Badge>green score {route.green_chemistry_score.toFixed(0)}/100</Badge>
-                <Badge>confidence {(route.confidence * 100).toFixed(0)}%</Badge>
+                {route.largest_block_pct !== null && (
+                  <Badge tone="accent">largest block {route.largest_block_pct.toFixed(0)}% of skeleton</Badge>
+                )}
+                <Badge>{route.building_blocks} building blocks</Badge>
               </div>
+              {route.flags.length > 0 && (
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {route.flags.map((f) => (
+                    <li
+                      key={f}
+                      className="rounded-full border border-edge2 bg-white/[0.03] px-3 py-1 text-[11px] text-dim"
+                    >
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              )}
               <ol className="mt-6 space-y-5">
                 {route.steps.map((s, i) => (
                   <li

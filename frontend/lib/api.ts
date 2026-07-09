@@ -178,3 +178,26 @@ export async function fetchImageObjectUrl(candidateId: number): Promise<string> 
   const blob = await res.blob();
   return URL.createObjectURL(blob);
 }
+
+export interface ModelCard {
+  name: string;
+  algorithm: string;
+  dataset: string;
+  test_r2: number;
+  n_train: number;
+  n_test: number;
+}
+
+export function getModelCards() {
+  return request<{ models: ModelCard[] }>("/meta/models");
+}
+
+// 3D conformer as an MDL MOL block (text), auth-guarded.
+export async function fetchStructure3d(candidateId: number): Promise<string> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}/candidates/${candidateId}/structure3d`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new ApiError(res.status, "3D structure unavailable");
+  return res.text();
+}

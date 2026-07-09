@@ -44,6 +44,8 @@ export interface Explanation {
   feature_importance: { factor: string; direction: string; points: number; property?: string }[];
   trade_offs: string[];
   similar_molecules: SimilarMolecule[];
+  cost_estimate_usd_per_kg: number | null;
+  ml_drivers: { factor: string; direction: string; impact: number }[];
 }
 
 export interface CandidateDetail extends CandidateSummary {
@@ -64,10 +66,9 @@ export interface SynthesisStep {
 export interface SynthesisRoute {
   source_engine: string;
   steps: SynthesisStep[];
-  estimated_cost: number;
-  estimated_yield: number;
-  green_chemistry_score: number;
-  confidence: number;
+  largest_block_pct: number | null;
+  building_blocks: number;
+  flags: string[];
   note: string;
 }
 
