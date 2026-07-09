@@ -50,3 +50,68 @@ export const DOMAIN_PRESETS: Record<Domain, Record<string, number>> = {
     affordability: 70,
   },
 };
+
+// Named scenario presets shown as quick chips in the wizard.
+export interface ScenarioPreset {
+  label: string;
+  values: Record<string, number>;
+}
+
+export const SCENARIO_PRESETS: Record<Domain, ScenarioPreset[]> = {
+  packaging: [
+    {
+      label: "Hot-food container",
+      values: { biodegradability: 80, thermal_stability: 75, lightweight: 60, flexibility: 45, affordability: 70 },
+    },
+    {
+      label: "Carry bag film",
+      values: { biodegradability: 90, thermal_stability: 40, lightweight: 80, flexibility: 85, affordability: 85 },
+    },
+    {
+      label: "Produce wrap",
+      values: { biodegradability: 90, thermal_stability: 35, lightweight: 75, flexibility: 90, affordability: 80 },
+    },
+  ],
+  ev_component: [
+    {
+      label: "Battery separator",
+      values: { biodegradability: 20, thermal_stability: 90, lightweight: 85, flexibility: 55, affordability: 65 },
+    },
+    {
+      label: "Cell casing",
+      values: { biodegradability: 15, thermal_stability: 85, lightweight: 80, flexibility: 30, affordability: 70 },
+    },
+    {
+      label: "Cable insulation",
+      values: { biodegradability: 30, thermal_stability: 75, lightweight: 70, flexibility: 85, affordability: 75 },
+    },
+  ],
+};
+
+// Physically-antagonistic property pairs; warn when both targets are ambitious.
+const CONFLICT_RULES: { a: string; b: string; threshold: number; note: string }[] = [
+  {
+    a: "biodegradability",
+    b: "thermal_stability",
+    threshold: 72,
+    note: "Bonds that break down easily also tend to fail under heat — expect a trade-off between biodegradability and thermal stability.",
+  },
+  {
+    a: "thermal_stability",
+    b: "flexibility",
+    threshold: 75,
+    note: "Rigid, heat-resistant backbones usually bend poorly — very high thermal stability and flexibility rarely co-exist.",
+  },
+  {
+    a: "thermal_stability",
+    b: "affordability",
+    threshold: 78,
+    note: "High-temperature polymers usually need exotic monomers — expect cost pressure at this thermal target.",
+  },
+];
+
+export function detectConflicts(values: Record<string, number>): string[] {
+  return CONFLICT_RULES.filter(
+    (r) => (values[r.a] ?? 0) >= r.threshold && (values[r.b] ?? 0) >= r.threshold
+  ).map((r) => r.note);
+}

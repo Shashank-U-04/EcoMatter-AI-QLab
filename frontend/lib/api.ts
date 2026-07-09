@@ -108,6 +108,27 @@ export function latestRun(id: number) {
   return request<RunStatus>(`/projects/${id}/runs/latest`);
 }
 
+export function listRuns(id: number) {
+  return request<RunStatus[]>(`/projects/${id}/runs`);
+}
+
+export function renameProject(id: number, name: string) {
+  return request<Project>(`/projects/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export function deleteProject(id: number) {
+  return request<undefined>(`/projects/${id}`, { method: "DELETE" });
+}
+
+export function toggleStar(candidateId: number) {
+  return request<{ id: number; starred: boolean }>(`/candidates/${candidateId}/star`, {
+    method: "PATCH",
+  });
+}
+
 export function listCandidates(id: number) {
   return request<CandidateSummary[]>(`/projects/${id}/candidates`);
 }

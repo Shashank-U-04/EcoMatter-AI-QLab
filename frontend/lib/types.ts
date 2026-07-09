@@ -28,6 +28,7 @@ export interface CandidateSummary {
   novelty_score: number;
   composite_score: number;
   rank: number;
+  starred: boolean;
   predictions: Prediction[];
 }
 
@@ -75,4 +76,8 @@ export interface RunStatus {
   error: string;
   started_at: string | null;
   finished_at: string | null;
+  progress_generation: number;
+  progress_total: number;
+  progress_best_fitness: number;
+  progress_valid_count: number;
 }
