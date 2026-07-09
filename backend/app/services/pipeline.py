@@ -6,9 +6,15 @@ from datetime import datetime, timezone
 from .. import config
 from ..database import SessionLocal
 from ..models import Candidate, GenerationRun, Prediction, Ranking, SynthesisRoute
-from .descriptors import mol_from_smiles
+from .descriptors import compute_descriptors, mol_from_smiles
 from .generation import run_generation
-from .prediction import compute_real_density, lightweight_from_density, predict_properties
+from .prediction import (
+    biodegradability_with_solubility,
+    compute_real_density,
+    lightweight_from_density,
+    predict_properties,
+)
+from .solubility import predict_solubility
 from .pubchem import lookup_cid
 from .ranking import composite_score, rank_candidates
 from .retrosynthesis import plan_route, route_to_json
@@ -47,12 +53,21 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
                 continue
             ref_sim = max_reference_similarity(mol)
             predictions = predict_properties(mol, ref_sim)
-            # Upgrade the lightweight estimate to a real 3D-computed density for
-            # the final candidates (too slow to run inside the GA fitness loop).
+            # Upgrade estimates to real computation/ML for the final candidates
+            # (too slow to run inside the GA fitness loop).
             density = compute_real_density(mol)
             if density is not None:
                 predictions = [
                     lightweight_from_density(density) if p.property_name == "lightweight" else p
+                    for p in predictions
+                ]
+            solubility = predict_solubility(mol)
+            if solubility is not None:
+                log_s, sol_conf = solubility
+                predictions = [
+                    biodegradability_with_solubility(compute_descriptors(mol), log_s, sol_conf)
+                    if p.property_name == "biodegradability"
+                    else p
                     for p in predictions
                 ]
             values = {p.property_name: p.value for p in predictions}

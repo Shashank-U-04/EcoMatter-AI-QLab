@@ -112,6 +112,40 @@ def _biodegradability(d: dict) -> tuple[float, list[dict]]:
     return _score_from_terms(terms)
 
 
+def biodegradability_with_solubility(
+    d: dict, log_s: float, solubility_confidence: float
+) -> "PropertyPrediction":
+    """Biodegradability upgraded with a real trained-ML aqueous-solubility signal.
+
+    Water solubility governs microbial bioavailability, an established driver of
+    ready biodegradability, so a molecule the trained ESOL model predicts as more
+    soluble gets a bounded biodegradability boost on top of the hydrolyzable-bond
+    chemistry. Tagged ml-hybrid so the UI shows it is partly data-grounded.
+    """
+    hydrolyzable = d["ester_groups"] + d["amide_groups"] + d["carbonate_groups"]
+    hydro_density = hydrolyzable / max(d["heavy_atoms"], 1)
+    # logS ~ [-9 insoluble .. +1 very soluble]; center near -4, bound to +/-18.
+    solubility_points = max(-18.0, min(18.0, (log_s + 4.0) * 4.0))
+    terms = [
+        ("Baseline (organic backbone)", 30.0),
+        ("Hydrolyzable ester/amide bonds", min(hydro_density * 320, 40.0)),
+        ("Aqueous solubility — bioavailability (trained ML)", solubility_points),
+        ("Oxygen-rich backbone", min(d["oxygen_fraction"] * 80, 12.0)),
+        ("Aromatic ring persistence", -min(d["aromatic_fraction"] * 45, 25.0)),
+        ("Halogenation penalty", -min(d["halogen_count"] * 15, 40.0)),
+    ]
+    value, contributions = _score_from_terms(terms)
+    # Blend the heuristic base confidence with the solubility model's confidence.
+    confidence = round(0.5 * _BASE_CONFIDENCE["biodegradability"] + 0.5 * solubility_confidence, 2)
+    return PropertyPrediction(
+        property_name="biodegradability",
+        value=round(value, 1),
+        confidence=confidence,
+        contributions=contributions,
+        model_version="ml-hybrid-v1",
+    )
+
+
 def _thermal_stability(d: dict) -> tuple[float, list[dict]]:
     ring_density = d["ring_count"] / max(d["heavy_atoms"], 1)
     terms = [
