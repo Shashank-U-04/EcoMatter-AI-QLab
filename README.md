@@ -14,20 +14,23 @@ Anchored on two demo scenarios:
 
 ```
 ┌─────────────────────────────┐
-│      Frontend (Next.js)      │  7 screens: landing, signup, login, dashboard,
-│  app router + Tailwind CSS   │  new project, project results/detail, settings
+│      Frontend (Next.js)      │  8 screens: landing, signup, login, dashboard,
+│  app router + Tailwind CSS   │  new-project wizard, results, candidate detail, settings
 └──────────────┬───────────────┘
                │ REST (JSON, JWT bearer auth)
 ┌──────────────▼───────────────┐
 │     Backend API (FastAPI)    │  monolith with clean router/service boundaries
 ├──────────────────────────────┤
 │ auth        PBKDF2 + JWT     │
-│ generation  RDKit genetic algorithm over BRICS fragments
-│ prediction  5 descriptor-based property regressors (0–100 scores)
+│ generation  RDKit genetic algorithm over BRICS fragments (live progress telemetry)
+│ prediction  trained-ML + 3D-computed + cost-model + heuristic (per-property provenance)
+│ solubility  RandomForest on ESOL (logS) + SHAP explanations
+│ cost        feedstock-cost index from commodity price anchors
 │ ranking     weighted multi-objective scoring vs. target profile
-│ retrosynth  local BRICS decomposition; optional IBM RXN API
-│ explain     descriptor contributions + Tanimoto similarity to 30 known monomers
-│ rendering   RDKit 2D → SVG
+│ retrosynth  BRICS disconnection with computed green-chemistry metrics
+│ novelty     real PubChem exact-match check
+│ explain     feature drivers + SHAP + Tanimoto similarity to 30 known monomers
+│ rendering   RDKit 2D → SVG and 3D → MOL block (3Dmol.js viewer)
 │ reports     PDF (reportlab) / CSV / JSON export
 └──────────────┬───────────────┘
                │ SQLAlchemy
@@ -115,13 +118,17 @@ cd backend
 |---|---|
 | `POST /auth/signup`, `POST /auth/login` | Create account / get JWT |
 | `POST /projects`, `GET /projects`, `GET /projects/{id}` | Project + target profile CRUD |
+| `PATCH /projects/{id}`, `DELETE /projects/{id}` | Rename / delete a project (cascade) |
 | `POST /projects/{id}/generate` | Start a generation run (202, background worker) |
-| `GET /projects/{id}/runs/latest` | Poll run status |
+| `GET /projects/{id}/runs`, `GET /projects/{id}/runs/latest` | Run history / poll live progress |
 | `GET /projects/{id}/candidates` | Ranked candidate list |
-| `GET /candidates/{id}` | Detail: predictions + explanation |
-| `GET /candidates/{id}/synthesis` | Retrosynthesis route |
+| `GET /candidates/{id}` | Detail: predictions + explanation + novelty |
+| `PATCH /candidates/{id}/star` | Toggle shortlist star |
+| `GET /candidates/{id}/synthesis` | Retrosynthesis route + green metrics |
 | `GET /candidates/{id}/image` | 2D structure (SVG) |
+| `GET /candidates/{id}/structure3d` | 3D conformer (MOL block) |
 | `GET /projects/{id}/report?format=pdf\|csv\|json` | Export report |
+| `GET /meta/models` | Trained-model cards (algorithm, dataset, test R²) |
 
 ## Conventions
 
@@ -133,6 +140,15 @@ cd backend
 ## Configuration
 
 All settings are environment variables with demo-safe defaults — see
-`backend/.env.example` (database URL, JWT secret, GA population/generations/time budget,
-optional `RXN_API_KEY`) and `frontend/.env.example` (`NEXT_PUBLIC_API_URL`).
-Set a real `JWT_SECRET` in any shared or deployed environment.
+`backend/.env.example` (database URL, JWT secret, GA population/generations/time budget)
+and `frontend/.env.example` (`NEXT_PUBLIC_API_URL`). Set a real `JWT_SECRET` in any
+shared or deployed environment. Extra toggles:
+
+- `PUBCHEM_NOVELTY=0` — disable the live PubChem novelty check (offline runs).
+- `CORS_ORIGINS` — comma-separated allowed origins (the frontend falls back to port
+  3001 if 3000 is taken, so include both).
+- `RXN_API_KEY` — optional IBM RXN retrosynthesis (unused by default; the local BRICS
+  engine with computed green metrics is the standard path).
+
+The trained solubility model ships committed under `backend/models/`; retrain it any
+time with `python -m ml.train_solubility` from `backend/`.
