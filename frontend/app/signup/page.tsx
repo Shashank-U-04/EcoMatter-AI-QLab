@@ -39,17 +39,20 @@ export default function SignupPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-md px-4 py-16">
-        <div className="card p-8">
-          <h1 className="text-2xl font-bold text-slate-900">Create your lab</h1>
-          <p className="mt-1 text-sm text-slate-500">Start designing materials in minutes.</p>
-          <form onSubmit={submit} className="mt-6 space-y-4">
+        <div className="card reveal p-8">
+          <div className="overline">Enrolment</div>
+          <h1 className="mt-2 font-display text-3xl text-ink">Create your lab</h1>
+          <p className="tagline mt-1 text-sm">Start designing materials in minutes.</p>
+          <form onSubmit={submit} className="mt-7 space-y-5">
             {error && <ErrorNote message={error} />}
             <div>
               <label className="label">Name</label>
               <input className="input" required value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
-              <label className="label">Organization <span className="text-slate-400">(optional)</span></label>
+              <label className="label">
+                Organization <span className="normal-case text-faint">(optional)</span>
+              </label>
               <input className="input" value={org} onChange={(e) => setOrg(e.target.value)} />
             </div>
             <div>
@@ -57,16 +60,20 @@ export default function SignupPage() {
               <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
-              <label className="label">Password <span className="text-slate-400">(min 8 chars)</span></label>
+              <label className="label">
+                Password <span className="normal-case text-faint">(min 8 chars)</span>
+              </label>
               <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <button className="btn-primary w-full" disabled={busy}>
+            <button className="btn-primary w-full py-3" disabled={busy}>
               {busy ? "Creating…" : "Create account"}
             </button>
           </form>
-          <p className="mt-4 text-center text-sm text-slate-500">
+          <p className="mt-5 text-center text-sm text-dim">
             Already have an account?{" "}
-            <Link href="/login" className="text-brand-600 hover:underline">Log in</Link>
+            <Link href="/login" className="text-ember-300 transition-colors hover:text-ember-200">
+              Log in
+            </Link>
           </p>
         </div>
       </main>

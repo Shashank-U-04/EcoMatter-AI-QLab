@@ -32,11 +32,12 @@ export default function LoginPage() {
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-md px-4 py-16">
-        <div className="card p-8">
-          <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-          <p className="mt-1 text-sm text-slate-500">Log in to your projects.</p>
-          <form onSubmit={submit} className="mt-6 space-y-4">
+      <main className="mx-auto max-w-md px-4 py-20">
+        <div className="card reveal p-8">
+          <div className="overline">Access</div>
+          <h1 className="mt-2 font-display text-3xl text-ink">Welcome back</h1>
+          <p className="tagline mt-1 text-sm">Log in to your laboratory.</p>
+          <form onSubmit={submit} className="mt-7 space-y-5">
             {error && <ErrorNote message={error} />}
             <div>
               <label className="label">Email</label>
@@ -46,13 +47,15 @@ export default function LoginPage() {
               <label className="label">Password</label>
               <input className="input" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
-            <button className="btn-primary w-full" disabled={busy}>
+            <button className="btn-primary w-full py-3" disabled={busy}>
               {busy ? "Logging in…" : "Log in"}
             </button>
           </form>
-          <p className="mt-4 text-center text-sm text-slate-500">
+          <p className="mt-5 text-center text-sm text-dim">
             No account?{" "}
-            <Link href="/signup" className="text-brand-600 hover:underline">Sign up</Link>
+            <Link href="/signup" className="text-ember-300 transition-colors hover:text-ember-200">
+              Sign up
+            </Link>
           </p>
         </div>
       </main>
