@@ -29,7 +29,7 @@ export default function Settings() {
         <div className="card reveal mt-7 p-7" style={{ "--d": "120ms" } as React.CSSProperties}>
           <div className="overline">Signed in as</div>
           <div className="mt-2 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ember-400/15 font-pixel text-lg font-black text-ember-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ember-400/10 font-mono text-lg font-bold text-ember-300">
               {(name || "?").charAt(0).toUpperCase()}
             </span>
             <div>

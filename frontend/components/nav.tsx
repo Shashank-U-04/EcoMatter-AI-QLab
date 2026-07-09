@@ -34,7 +34,7 @@ export default function Nav() {
           href={authed ? "/dashboard" : "/"}
           className="group flex items-baseline gap-2"
         >
-          <span className="font-pixel text-xl font-black tracking-tight text-ink transition-colors group-hover:text-ember-300">
+          <span className="font-mono text-lg font-bold uppercase tracking-[0.18em] text-ink transition-colors group-hover:text-ember-300">
             ecomatter
           </span>
           <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ember-400">

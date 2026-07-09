@@ -88,7 +88,7 @@ export default function CandidatePage() {
           <SectionLabel>Candidate profile</SectionLabel>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="font-display text-4xl text-ink">
-              Candidate <span className="font-pixel font-black text-ember-400">#{detail.rank}</span>
+              Candidate <span className="font-mono font-bold text-ember-400">#{detail.rank}</span>
             </h1>
             <Badge>score {detail.composite_score.toFixed(1)}</Badge>
             <Badge>novelty {(detail.novelty_score * 100).toFixed(0)}%</Badge>
@@ -248,7 +248,7 @@ export default function CandidatePage() {
                     className="reveal flex gap-4"
                     style={{ "--d": `${i * 100}ms` } as React.CSSProperties}
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-ember-400/30 bg-ember-400/10 font-pixel text-sm font-black text-ember-300">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-edge2 bg-white/5 font-mono text-sm font-bold text-ember-300">
                       {s.step}
                     </span>
                     <div className="min-w-0">

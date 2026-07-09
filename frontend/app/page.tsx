@@ -15,14 +15,14 @@ export default function Landing() {
       {/* Emerald ribbon atmosphere (quantum-branding reference) */}
       <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
         <div
-          className="absolute -right-40 -top-64 h-[42rem] w-[42rem] animate-drift rounded-full opacity-25 blur-3xl"
+          className="absolute -right-40 -top-64 h-[42rem] w-[42rem] animate-drift rounded-full opacity-10 blur-3xl"
           style={{
             background:
               "conic-gradient(from 120deg, transparent 10%, #0f7a3d 30%, #3ee06e 48%, #b7f65c 55%, transparent 75%)",
           }}
         />
         <div
-          className="absolute -bottom-72 -left-52 h-[46rem] w-[46rem] animate-drift rounded-full opacity-15 blur-3xl"
+          className="absolute -bottom-72 -left-52 h-[46rem] w-[46rem] animate-drift rounded-full opacity-[0.06] blur-3xl"
           style={{
             animationDelay: "-11s",
             background:
@@ -43,7 +43,7 @@ export default function Landing() {
           >
             Describe the material.
             <br />
-            <em className="bg-gradient-to-r from-ember-200 via-ember-400 to-ember-700 bg-clip-text text-transparent">
+            <em className="bg-gradient-to-r from-ember-300 to-ember-600 bg-clip-text text-transparent">
               Let AI invent the molecule.
             </em>
           </h1>
@@ -97,7 +97,7 @@ export default function Landing() {
                 className="reveal"
                 style={{ "--d": `${i * 100}ms` } as React.CSSProperties}
               >
-                <div className="font-pixel text-2xl font-black text-ember-400">{num}</div>
+                <div className="font-mono text-lg font-bold text-ember-500/80">{num}</div>
                 <h4 className="mt-2 font-display text-xl text-ink">{title}</h4>
                 <p className="mt-1.5 text-sm leading-relaxed text-dim">{body}</p>
               </div>

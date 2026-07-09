@@ -162,7 +162,7 @@ export default function ProjectResults() {
                           className="reveal border-b border-edge/50 transition-colors duration-300 hover:bg-ember-400/5"
                           style={{ "--d": `${Math.min(i, 12) * 50}ms` } as React.CSSProperties}
                         >
-                          <td className="px-5 py-4 font-pixel text-base font-black text-ember-400">
+                          <td className={`px-5 py-4 font-mono text-base font-bold ${c.rank === 1 ? "text-ember-400" : "text-dim"}`}>
                             {c.rank}
                           </td>
                           <td className="max-w-xs truncate px-3 py-4 font-mono text-xs text-dim">
