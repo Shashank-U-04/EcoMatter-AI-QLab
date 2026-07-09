@@ -90,12 +90,34 @@ export default function CandidatePage() {
             <h1 className="font-display text-4xl text-ink">
               Candidate <span className="font-mono font-bold text-ember-400">#{detail.rank}</span>
             </h1>
-            <Badge>score {detail.composite_score.toFixed(1)}</Badge>
-            <Badge>novelty {(detail.novelty_score * 100).toFixed(0)}%</Badge>
+            <Badge tone="accent">score {detail.composite_score.toFixed(1)}</Badge>
+            <Badge>structural novelty {(detail.novelty_score * 100).toFixed(0)}%</Badge>
             <span className="font-mono text-[10px] uppercase tracking-wider text-faint">
               {detail.generation_method}
             </span>
           </div>
+
+          {/* Real, verifiable novelty: checked against PubChem's ~119M compounds */}
+          {detail.pubchem_cid !== null && (
+            <div className="mt-3">
+              {detail.pubchem_cid === 0 ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-ember-400/25 bg-ember-400/[0.07] px-3.5 py-1.5 text-xs text-ember-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ember-400" />
+                  Novel structure — not found in PubChem&apos;s ~119M known compounds
+                </span>
+              ) : (
+                <a
+                  href={`https://pubchem.ncbi.nlm.nih.gov/compound/${detail.pubchem_cid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-edge2 bg-white/[0.04] px-3.5 py-1.5 text-xs text-dim transition-colors hover:border-ember-400/30 hover:text-ink"
+                >
+                  Known compound · PubChem CID {detail.pubchem_cid}
+                  <span className="text-faint">↗</span>
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -129,6 +151,7 @@ export default function CandidatePage() {
                   name={p.property_name}
                   value={p.predicted_value}
                   confidence={p.confidence}
+                  modelVersion={p.model_version}
                 />
               ))}
             </div>

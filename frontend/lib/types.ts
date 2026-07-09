@@ -50,6 +50,7 @@ export interface CandidateDetail extends CandidateSummary {
   generation_method: string;
   project_id: number;
   next_candidate_id: number | null;
+  pubchem_cid: number | null; // null unchecked, 0 novel, >0 known compound CID
   explanation: Explanation;
 }
 

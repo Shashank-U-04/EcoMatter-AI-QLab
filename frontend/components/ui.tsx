@@ -26,23 +26,33 @@ export function ScoreBar({ value, label }: { value: number; label?: string }) {
   );
 }
 
+const MODEL_TAGS: Record<string, string> = {
+  "rdkit-3d-density-v1": "3D-computed",
+  "heuristic-v1": "estimate",
+};
+
 export function PropertyRow({
   name,
   value,
   confidence,
+  modelVersion,
 }: {
   name: string;
   value: number;
   confidence?: number;
+  modelVersion?: string;
 }) {
+  const tag = modelVersion ? MODEL_TAGS[modelVersion] ?? "model" : undefined;
+  const isReal = modelVersion !== undefined && modelVersion !== "heuristic-v1";
   return (
     <div className="py-2.5">
       <ScoreBar value={value} label={PROPERTY_LABEL[name] || name} />
-      {confidence !== undefined && (
-        <div className="mt-1 font-mono text-[10px] uppercase tracking-wider text-faint">
-          confidence {(confidence * 100).toFixed(0)}%
-        </div>
-      )}
+      <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-faint">
+        {confidence !== undefined && <span>confidence {(confidence * 100).toFixed(0)}%</span>}
+        {tag && (
+          <span className={isReal ? "text-ember-400/70" : "text-faint"}>· {tag}</span>
+        )}
+      </div>
     </div>
   );
 }
