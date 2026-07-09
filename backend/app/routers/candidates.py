@@ -76,12 +76,25 @@ def candidate_detail(
         generation_method=candidate.generation_method,
         project_id=candidate.run.project_id,
         next_candidate_id=next_candidate_id,
+        starred=bool(candidate.starred),
         novelty_score=candidate.novelty_score,
         composite_score=candidate.ranking.composite_score if candidate.ranking else 0.0,
         rank=candidate.ranking.rank if candidate.ranking else 0,
         predictions=[PredictionOut.model_validate(p) for p in candidate.predictions],
         explanation=ExplanationOut(**explanation),
     )
+
+
+@router.patch("/{candidate_id}/star")
+def toggle_star(
+    candidate_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    candidate = _owned_candidate(candidate_id, user, db)
+    candidate.starred = 0 if candidate.starred else 1
+    db.commit()
+    return {"id": candidate.id, "starred": bool(candidate.starred)}
 
 
 @router.get("/{candidate_id}/image")

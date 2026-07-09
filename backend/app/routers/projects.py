@@ -14,11 +14,13 @@ from ..models import (
     Ranking,
     User,
 )
+from ..models import Report
 from ..schemas import (
     CandidateSummary,
     PredictionOut,
     ProjectCreate,
     ProjectOut,
+    ProjectRename,
     RunStatusOut,
 )
 from ..security import get_current_user
@@ -77,6 +79,49 @@ def get_project(
     db: Session = Depends(get_db),
 ):
     return _owned_project(project_id, user, db)
+
+
+@router.patch("/{project_id}", response_model=ProjectOut)
+def rename_project(
+    project_id: int,
+    payload: ProjectRename,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = _owned_project(project_id, user, db)
+    project.name = payload.name
+    db.commit()
+    db.refresh(project)
+    return project
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(
+    project_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = _owned_project(project_id, user, db)
+    # Reports have no ORM relationship on Project, so remove them explicitly.
+    for report in db.scalars(select(Report).where(Report.project_id == project.id)):
+        db.delete(report)
+    db.delete(project)  # cascades: targets, runs, candidates, predictions, routes
+    db.commit()
+
+
+@router.get("/{project_id}/runs", response_model=list[RunStatusOut])
+def run_history(
+    project_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = _owned_project(project_id, user, db)
+    runs = db.scalars(
+        select(GenerationRun)
+        .where(GenerationRun.project_id == project.id)
+        .order_by(GenerationRun.id.desc())
+    ).all()
+    return list(runs)
 
 
 @router.post("/{project_id}/generate", response_model=RunStatusOut, status_code=status.HTTP_202_ACCEPTED)
@@ -151,6 +196,7 @@ def list_candidates(
             novelty_score=c.novelty_score,
             composite_score=c.ranking.composite_score if c.ranking else 0.0,
             rank=c.ranking.rank if c.ranking else 0,
+            starred=bool(c.starred),
             predictions=[PredictionOut.model_validate(p) for p in c.predictions],
         )
         for c in candidates
