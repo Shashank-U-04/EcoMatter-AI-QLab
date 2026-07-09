@@ -24,6 +24,39 @@ def canonical_smiles(smiles: str) -> str | None:
     return Chem.MolToSmiles(mol) if mol is not None else None
 
 
+# Fixed feature ordering shared by ML training and inference so a saved model
+# always receives its features in the exact order it was trained on.
+FEATURE_ORDER = [
+    "mol_weight",
+    "logp",
+    "tpsa",
+    "heavy_atoms",
+    "rotatable_bonds",
+    "rotatable_fraction",
+    "ring_count",
+    "aromatic_rings",
+    "aromatic_fraction",
+    "fraction_csp3",
+    "hetero_fraction",
+    "oxygen_fraction",
+    "nitrogen_fraction",
+    "ester_groups",
+    "amide_groups",
+    "carbonate_groups",
+    "hydroxyl_groups",
+    "ether_groups",
+    "halogen_count",
+    "exotic_atoms",
+    "stereo_centers",
+]
+
+
+def feature_vector(mol: Chem.Mol) -> list[float]:
+    """Descriptor values in FEATURE_ORDER — the model input for trained predictors."""
+    d = compute_descriptors(mol)
+    return [d[name] for name in FEATURE_ORDER]
+
+
 def compute_descriptors(mol: Chem.Mol) -> dict[str, float]:
     heavy = max(mol.GetNumHeavyAtoms(), 1)
     rot_bonds = rdMolDescriptors.CalcNumRotatableBonds(mol)
