@@ -112,6 +112,8 @@ class ExplanationOut(BaseModel):
     feature_importance: list[dict]
     trade_offs: list[str]
     similar_molecules: list[SimilarMolecule]
+    cost_estimate_usd_per_kg: float | None = None
+    ml_drivers: list[dict] = []
 
 
 class CandidateDetail(CandidateSummary):
@@ -132,8 +134,7 @@ class SynthesisStep(BaseModel):
 class SynthesisRouteOut(BaseModel):
     source_engine: str
     steps: list[SynthesisStep]
-    estimated_cost: float
-    estimated_yield: float
-    green_chemistry_score: float
-    confidence: float
+    largest_block_pct: float | None = None  # real: biggest block's share of the skeleton
+    building_blocks: int = 0
+    flags: list[str] = []
     note: str = ""

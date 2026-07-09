@@ -9,6 +9,7 @@ from ..models import Candidate, GenerationRun, Prediction, Ranking, SynthesisRou
 from .descriptors import compute_descriptors, mol_from_smiles
 from .generation import run_generation
 from .prediction import (
+    affordability_from_cost_model,
     biodegradability_with_solubility,
     compute_real_density,
     lightweight_from_density,
@@ -61,15 +62,23 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
                     lightweight_from_density(density) if p.property_name == "lightweight" else p
                     for p in predictions
                 ]
+            descriptors = compute_descriptors(mol)
             solubility = predict_solubility(mol)
             if solubility is not None:
                 log_s, sol_conf = solubility
                 predictions = [
-                    biodegradability_with_solubility(compute_descriptors(mol), log_s, sol_conf)
+                    biodegradability_with_solubility(descriptors, log_s, sol_conf)
                     if p.property_name == "biodegradability"
                     else p
                     for p in predictions
                 ]
+            # Real feedstock-cost-grounded affordability.
+            predictions = [
+                affordability_from_cost_model(mol, descriptors)
+                if p.property_name == "affordability"
+                else p
+                for p in predictions
+            ]
             values = {p.property_name: p.value for p in predictions}
             enriched.append(
                 {
@@ -118,15 +127,18 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
             if item["rank"] <= ROUTES_FOR_TOP_N:
                 route = plan_route(item["smiles"])
                 if route is not None:
+                    # route_json holds the full route incl. real green metrics; the
+                    # scalar columns are legacy (kept for schema stability). Atom
+                    # economy is stored for possible querying.
                     db.add(
                         SynthesisRoute(
                             candidate_id=candidate.id,
                             source_engine=route["source_engine"],
                             route_json=route_to_json(route),
-                            estimated_cost=route["estimated_cost"],
-                            estimated_yield=route["estimated_yield"],
-                            green_chemistry_score=route["green_chemistry_score"],
-                            confidence=route["confidence"],
+                            estimated_cost=0.0,
+                            estimated_yield=0.0,
+                            green_chemistry_score=route.get("largest_block_pct") or 0.0,
+                            confidence=0.0,
                         )
                     )
 

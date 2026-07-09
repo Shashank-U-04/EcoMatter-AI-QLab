@@ -2,8 +2,11 @@
 trade-offs against the target profile, and similar known molecules."""
 from rdkit import Chem
 
+from .cost import estimate_cost_per_kg
+from .descriptors import compute_descriptors
 from .prediction import PROPERTY_LABELS, predict_properties
 from .similarity import max_reference_similarity, similar_molecules
+from .solubility import solubility_shap
 
 TRADE_OFF_GAP = 20.0  # points of miss that count as a real trade-off
 
@@ -56,9 +59,15 @@ def build_explanation(
     else:
         summary = "Partial match — best available compromise for a demanding target profile."
 
+    cost_per_kg, _ = estimate_cost_per_kg(mol, compute_descriptors(mol))
+
     return {
         "summary": summary,
         "feature_importance": feature_importance,
         "trade_offs": trade_offs,
         "similar_molecules": similar_molecules(mol, top_k=3),
+        "cost_estimate_usd_per_kg": cost_per_kg,
+        # Real per-molecule SHAP drivers of the trained aqueous-solubility model
+        # that feeds biodegradability.
+        "ml_drivers": solubility_shap(mol, top_k=5),
     }

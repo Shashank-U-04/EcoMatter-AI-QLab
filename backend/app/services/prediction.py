@@ -201,6 +201,30 @@ def _affordability(d: dict) -> tuple[float, list[dict]]:
     return _score_from_terms(terms)
 
 
+def affordability_from_cost_model(mol, d: dict) -> "PropertyPrediction":
+    """Affordability grounded in a real feedstock-cost estimate (USD/kg)."""
+    from .cost import affordability_from_cost, estimate_cost_per_kg
+
+    cost, breakdown = estimate_cost_per_kg(mol, d)
+    value = affordability_from_cost(cost)
+    # Express the cost drivers as affordability impacts (higher cost → lower score).
+    span = 17.0  # USD/kg cheap→expensive band used by affordability_from_cost
+    contributions = [{"factor": f"Estimated feedstock cost ${cost}/kg", "direction": "up" if value >= 50 else "down", "points": round(value - 50, 1)}]
+    for term in breakdown[:4]:
+        contributions.append({
+            "factor": term["factor"],
+            "direction": "down",
+            "points": -round(term["usd_per_kg"] / span * 100, 1),
+        })
+    return PropertyPrediction(
+        property_name="affordability",
+        value=round(value, 1),
+        confidence=0.7,
+        contributions=contributions,
+        model_version="cost-model-v1",
+    )
+
+
 def _score_from_terms(terms: list[tuple[str, float]]) -> tuple[float, list[dict]]:
     score = _clamp(sum(points for _, points in terms))
     contributions = [
