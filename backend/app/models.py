@@ -85,6 +85,9 @@ class Candidate(Base):
     generation_method: Mapped[str] = mapped_column(String(80), default="ga-rdkit-v1")
     novelty_score: Mapped[float] = mapped_column(Float, default=0.0)
     starred: Mapped[int] = mapped_column(Integer, default=0)  # 0/1 shortlist flag
+    # PubChem exact-match check: NULL = unchecked, 0 = novel (not in PubChem),
+    # >0 = known compound's CID. Real, verifiable novelty signal.
+    pubchem_cid: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     run: Mapped[GenerationRun] = relationship(back_populates="candidates")

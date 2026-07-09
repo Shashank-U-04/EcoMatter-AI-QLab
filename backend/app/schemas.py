@@ -118,6 +118,7 @@ class CandidateDetail(CandidateSummary):
     generation_method: str
     project_id: int
     next_candidate_id: int | None = None  # next-ranked candidate in the same run
+    pubchem_cid: int | None = None  # None unchecked, 0 novel, >0 known compound
     explanation: ExplanationOut
 
 

@@ -18,6 +18,10 @@ DATA_DIR = BASE_DIR / "data"
 # Optional IBM RXN for Chemistry credentials; local BRICS engine is used when absent.
 RXN_API_KEY = os.environ.get("RXN_API_KEY", "")
 
+# Query PubChem for a real novelty check on top candidates. Disable for offline
+# runs and tests (set PUBCHEM_NOVELTY=0).
+PUBCHEM_NOVELTY_ENABLED = os.environ.get("PUBCHEM_NOVELTY", "1") not in ("0", "false", "False")
+
 # Genetic-algorithm limits (kept small so a run finishes in well under 2 minutes).
 GA_POPULATION_SIZE = int(os.environ.get("GA_POPULATION_SIZE", "60"))
 GA_GENERATIONS = int(os.environ.get("GA_GENERATIONS", "12"))

@@ -30,6 +30,7 @@ _SCHEMA_PATCHES = [
     ("generation_runs", "progress_best_fitness", "FLOAT DEFAULT 0"),
     ("generation_runs", "progress_valid_count", "INTEGER DEFAULT 0"),
     ("candidates", "starred", "INTEGER DEFAULT 0"),
+    ("candidates", "pubchem_cid", "INTEGER"),
 ]
 
 

@@ -76,6 +76,7 @@ def candidate_detail(
         generation_method=candidate.generation_method,
         project_id=candidate.run.project_id,
         next_candidate_id=next_candidate_id,
+        pubchem_cid=candidate.pubchem_cid,
         starred=bool(candidate.starred),
         novelty_score=candidate.novelty_score,
         composite_score=candidate.ranking.composite_score if candidate.ranking else 0.0,
