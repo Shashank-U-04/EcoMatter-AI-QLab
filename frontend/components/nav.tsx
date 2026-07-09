@@ -1,19 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clearSession, getToken, getUserName } from "@/lib/api";
 
+const AUTHED_LINKS = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/projects/new", label: "New project" },
+  { href: "/settings", label: "Settings" },
+];
+
 export default function Nav() {
   const router = useRouter();
+  const pathname = usePathname();
   const [name, setName] = useState<string | null>(null);
+  const [authed, setAuthed] = useState(false);
 
   useEffect(() => {
     setName(getUserName());
-  }, []);
-
-  const authed = typeof window !== "undefined" && !!getToken();
+    setAuthed(!!getToken());
+  }, [pathname]);
 
   function logout() {
     clearSession();
@@ -21,25 +28,57 @@ export default function Nav() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href={authed ? "/dashboard" : "/"} className="flex items-center gap-2 font-bold text-brand-700">
-          <span className="text-xl">🧪</span> EcoMatter <span className="font-normal text-slate-400">AI-QLab</span>
+    <header className="sticky top-0 z-40 px-4 pt-4">
+      <div className="glass mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
+        <Link
+          href={authed ? "/dashboard" : "/"}
+          className="group flex items-baseline gap-2"
+        >
+          <span className="font-pixel text-xl font-black tracking-tight text-ink transition-colors group-hover:text-ember-300">
+            ecomatter
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ember-400">
+            AI·QLab
+          </span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+
+        <nav className="flex items-center gap-1 text-sm">
           {authed ? (
             <>
-              <Link href="/dashboard" className="text-slate-600 hover:text-brand-700">Dashboard</Link>
-              <Link href="/projects/new" className="text-slate-600 hover:text-brand-700">New project</Link>
-              <Link href="/settings" className="text-slate-600 hover:text-brand-700">
-                {name || "Settings"}
-              </Link>
-              <button onClick={logout} className="text-slate-400 hover:text-red-600">Sign out</button>
+              {AUTHED_LINKS.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`rounded-full px-3.5 py-1.5 transition-all duration-300 ${
+                    pathname === l.href
+                      ? "bg-ember-400/10 text-ember-300"
+                      : "text-dim hover:bg-white/5 hover:text-ink"
+                  }`}
+                >
+                  {l.label}
+                </Link>
+              ))}
+              <span className="mx-2 hidden font-mono text-[11px] text-faint sm:inline">
+                {name}
+              </span>
+              <button
+                onClick={logout}
+                className="rounded-full px-3.5 py-1.5 text-faint transition-colors hover:bg-white/5 hover:text-red-400"
+              >
+                Sign out
+              </button>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-slate-600 hover:text-brand-700">Log in</Link>
-              <Link href="/signup" className="btn-primary">Get started</Link>
+              <Link
+                href="/login"
+                className="rounded-full px-3.5 py-1.5 text-dim transition-colors hover:text-ink"
+              >
+                Log in
+              </Link>
+              <Link href="/signup" className="btn-primary px-5 py-1.5">
+                Get started
+              </Link>
             </>
           )}
         </nav>

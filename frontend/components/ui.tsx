@@ -5,19 +5,22 @@ import { PROPERTY_LABEL } from "@/lib/properties";
 
 export function ScoreBar({ value, label }: { value: number; label?: string }) {
   const pct = Math.max(0, Math.min(100, value));
-  const hue = Math.round((pct / 100) * 120); // red -> green
   return (
     <div className="w-full">
       {label && (
-        <div className="mb-1 flex justify-between text-xs text-slate-600">
-          <span>{label}</span>
-          <span className="font-semibold">{pct.toFixed(0)}</span>
+        <div className="mb-1.5 flex items-baseline justify-between">
+          <span className="text-xs text-dim">{label}</span>
+          <span className="font-mono text-xs font-semibold text-ink">{pct.toFixed(0)}</span>
         </div>
       )}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
         <div
-          className="h-full rounded-full"
-          style={{ width: `${pct}%`, backgroundColor: `hsl(${hue} 65% 45%)` }}
+          className="h-full rounded-full transition-[width] duration-700 ease-out"
+          style={{
+            width: `${pct}%`,
+            backgroundImage: "linear-gradient(90deg, #0f7a3d, #3ee06e, #b7f65c)",
+            boxShadow: "0 0 12px rgba(62,224,110,.5)",
+          }}
         />
       </div>
     </div>
@@ -34,10 +37,10 @@ export function PropertyRow({
   confidence?: number;
 }) {
   return (
-    <div className="py-2">
+    <div className="py-2.5">
       <ScoreBar value={value} label={PROPERTY_LABEL[name] || name} />
       {confidence !== undefined && (
-        <div className="mt-1 text-[11px] text-slate-400">
+        <div className="mt-1 font-mono text-[10px] uppercase tracking-wider text-faint">
           confidence {(confidence * 100).toFixed(0)}%
         </div>
       )}
@@ -47,7 +50,7 @@ export function PropertyRow({
 
 export function Badge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-block rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700">
+    <span className="inline-block rounded-full border border-ember-400/25 bg-ember-400/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ember-300">
       {children}
     </span>
   );
@@ -55,8 +58,11 @@ export function Badge({ children }: { children: React.ReactNode }) {
 
 export function Spinner({ label }: { label?: string }) {
   return (
-    <div className="flex items-center gap-3 text-slate-500">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+    <div className="flex items-center gap-3 text-dim">
+      <span className="relative flex h-4 w-4">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ember-400 opacity-30" />
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-ember-400 border-t-transparent" />
+      </span>
       {label && <span className="text-sm">{label}</span>}
     </div>
   );
@@ -64,7 +70,7 @@ export function Spinner({ label }: { label?: string }) {
 
 export function ErrorNote({ message }: { message: string }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <div className="reveal rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
       {message}
     </div>
   );
@@ -72,7 +78,7 @@ export function ErrorNote({ message }: { message: string }) {
 
 export function Disclaimer() {
   return (
-    <p className="text-xs text-slate-400">
+    <p className="font-mono text-[10px] leading-relaxed tracking-wide text-faint">
       Property values are AI screening estimates from descriptor-based surrogate
       models — directional guidance for shortlisting, not lab-grade measurements.
     </p>
@@ -81,8 +87,16 @@ export function Disclaimer() {
 
 export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="text-sm text-brand-600 hover:underline">
-      ← {children}
+    <Link
+      href={href}
+      className="group inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-faint transition-colors hover:text-ember-300"
+    >
+      <span className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
+      {children}
     </Link>
   );
+}
+
+export function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <div className="overline mb-3">{children}</div>;
 }
