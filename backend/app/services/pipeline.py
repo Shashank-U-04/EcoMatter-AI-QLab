@@ -3,11 +3,13 @@ top candidates -> persist. Runs on a worker thread with its own DB session."""
 import logging
 from datetime import datetime, timezone
 
+from .. import config
 from ..database import SessionLocal
 from ..models import Candidate, GenerationRun, Prediction, Ranking, SynthesisRoute
 from .descriptors import mol_from_smiles
 from .generation import run_generation
-from .prediction import predict_properties
+from .prediction import compute_real_density, lightweight_from_density, predict_properties
+from .pubchem import lookup_cid
 from .ranking import composite_score, rank_candidates
 from .retrosynthesis import plan_route, route_to_json
 from .similarity import max_reference_similarity
@@ -15,6 +17,7 @@ from .similarity import max_reference_similarity
 logger = logging.getLogger(__name__)
 
 ROUTES_FOR_TOP_N = 10
+NOVELTY_CHECK_TOP_N = 10  # PubChem lookups only for candidates users open
 
 
 def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
@@ -44,6 +47,14 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
                 continue
             ref_sim = max_reference_similarity(mol)
             predictions = predict_properties(mol, ref_sim)
+            # Upgrade the lightweight estimate to a real 3D-computed density for
+            # the final candidates (too slow to run inside the GA fitness loop).
+            density = compute_real_density(mol)
+            if density is not None:
+                predictions = [
+                    lightweight_from_density(density) if p.property_name == "lightweight" else p
+                    for p in predictions
+                ]
             values = {p.property_name: p.value for p in predictions}
             enriched.append(
                 {
@@ -57,11 +68,18 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
         ranked = rank_candidates(enriched)
 
         for item in ranked:
+            # Real novelty check: query PubChem only for the top candidates users
+            # actually open (bounds API calls; failures return None = unchecked).
+            pubchem_cid = None
+            if config.PUBCHEM_NOVELTY_ENABLED and item["rank"] <= NOVELTY_CHECK_TOP_N:
+                pubchem_cid = lookup_cid(item["smiles"])
+
             candidate = Candidate(
                 run_id=run.id,
                 smiles=item["smiles"],
                 generation_method="ga-brics-v1",
                 novelty_score=item["novelty"],
+                pubchem_cid=pubchem_cid,
             )
             db.add(candidate)
             db.flush()
@@ -72,7 +90,7 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
                         property_name=p.property_name,
                         predicted_value=p.value,
                         confidence=p.confidence,
-                        model_version="heuristic-v1",
+                        model_version=p.model_version,
                     )
                 )
             db.add(
