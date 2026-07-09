@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EB_Garamond, Instrument_Sans, JetBrains_Mono, Silkscreen } from "next/font/google";
+import { EB_Garamond, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const display = EB_Garamond({
@@ -19,12 +19,6 @@ const mono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
-const pixel = Silkscreen({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-pixel",
-});
-
 export const metadata: Metadata = {
   title: "EcoMatter AI-QLab",
   description: "AI-powered inverse materials design — AI Living for India",
@@ -36,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable} ${pixel.variable}`}>
+    <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

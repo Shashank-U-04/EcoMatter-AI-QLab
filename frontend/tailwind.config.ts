@@ -33,19 +33,18 @@ const config: Config = {
         display: ["var(--font-display)", "Georgia", "serif"],
         body: ["var(--font-body)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "monospace"],
-        pixel: ["var(--font-pixel)", "monospace"],
       },
       borderRadius: {
         card: "1.25rem",
       },
       boxShadow: {
-        deep: "0 4px 12px rgba(0,0,0,.6), 0 20px 52px rgba(0,0,0,.72)",
-        glow: "0 0 0 1px rgba(62,224,110,.25), 0 8px 40px rgba(62,224,110,.12)",
-        "glow-lg": "0 0 0 1px rgba(62,224,110,.35), 0 12px 60px rgba(62,224,110,.22)",
+        deep: "0 4px 12px rgba(0,0,0,.45), 0 20px 52px rgba(0,0,0,.5)",
+        glow: "0 0 0 1px rgba(62,224,110,.12), 0 8px 40px rgba(62,224,110,.06)",
+        "glow-lg": "0 0 0 1px rgba(62,224,110,.18), 0 12px 60px rgba(62,224,110,.1)",
       },
       keyframes: {
         rise: {
-          from: { opacity: "0", transform: "translateY(16px)" },
+          from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         drift: {
