@@ -15,6 +15,11 @@ out/
 npm-debug.log*
 *.tsbuildinfo
 
+# Playwright E2E
+frontend/test-results/
+frontend/playwright-report/
+frontend/playwright/.cache/
+
 # Local data & artifacts
 backend/ecomatter.db
 backend/storage/

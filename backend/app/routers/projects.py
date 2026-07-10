@@ -1,4 +1,5 @@
 """Project CRUD, generation trigger, and ranked candidate listing."""
+import secrets
 import threading
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -22,6 +23,7 @@ from ..schemas import (
     ProjectOut,
     ProjectRename,
     RunStatusOut,
+    ShareLinkOut,
 )
 from ..security import get_current_user
 from ..services.pipeline import execute_run
@@ -140,6 +142,17 @@ def start_generation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Project has no property targets to optimize",
         )
+    active = db.scalar(
+        select(GenerationRun).where(
+            GenerationRun.project_id == project.id,
+            GenerationRun.status.in_(("pending", "running")),
+        )
+    )
+    if active is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A generation run is already in progress for this project",
+        )
     run = GenerationRun(project_id=project.id, status="pending")
     db.add(run)
     db.commit()
@@ -170,23 +183,18 @@ def latest_run(
     return run
 
 
-@router.get("/{project_id}/candidates", response_model=list[CandidateSummary])
-def list_candidates(
-    project_id: int,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    project = _owned_project(project_id, user, db)
-    latest = db.scalar(
+def latest_completed_run(project_id: int, db: Session) -> GenerationRun | None:
+    return db.scalar(
         select(GenerationRun)
-        .where(GenerationRun.project_id == project.id, GenerationRun.status == "completed")
+        .where(GenerationRun.project_id == project_id, GenerationRun.status == "completed")
         .order_by(GenerationRun.id.desc())
     )
-    if latest is None:
-        return []
+
+
+def candidate_summaries(run_id: int, db: Session) -> list[CandidateSummary]:
     candidates = db.scalars(
         select(Candidate)
-        .where(Candidate.run_id == latest.id)
+        .where(Candidate.run_id == run_id)
         .options(selectinload(Candidate.predictions), selectinload(Candidate.ranking))
     ).all()
     summaries = [
@@ -203,3 +211,43 @@ def list_candidates(
     ]
     summaries.sort(key=lambda s: s.rank)
     return summaries
+
+
+@router.get("/{project_id}/candidates", response_model=list[CandidateSummary])
+def list_candidates(
+    project_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = _owned_project(project_id, user, db)
+    latest = latest_completed_run(project.id, db)
+    if latest is None:
+        return []
+    return candidate_summaries(latest.id, db)
+
+
+@router.post("/{project_id}/share", response_model=ShareLinkOut)
+def create_share_link(
+    project_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mint (or return the existing) read-only public token for this project."""
+    project = _owned_project(project_id, user, db)
+    if not project.share_token:
+        project.share_token = secrets.token_urlsafe(24)
+        db.commit()
+        db.refresh(project)
+    return ShareLinkOut(share_token=project.share_token)
+
+
+@router.delete("/{project_id}/share", response_model=ShareLinkOut)
+def revoke_share_link(
+    project_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    project = _owned_project(project_id, user, db)
+    project.share_token = None
+    db.commit()
+    return ShareLinkOut(share_token=None)

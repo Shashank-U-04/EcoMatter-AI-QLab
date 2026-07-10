@@ -31,6 +31,8 @@ class Project(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     name: Mapped[str] = mapped_column(String(255))
     domain: Mapped[str] = mapped_column(String(50))  # "packaging" | "ev_component"
+    # Read-only public share link: NULL = private, else an unguessable URL token.
+    share_token: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="projects")
@@ -69,6 +71,9 @@ class GenerationRun(Base):
     progress_total: Mapped[int] = mapped_column(Integer, default=0)
     progress_best_fitness: Mapped[float] = mapped_column(Float, default=0.0)
     progress_valid_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Full per-generation trace, JSON list of {gen, best, valid} — feeds the
+    # fitness-evolution chart.
+    progress_history: Mapped[str] = mapped_column(Text, default="[]")
 
     project: Mapped[Project] = relationship(back_populates="runs")
     candidates: Mapped[list["Candidate"]] = relationship(

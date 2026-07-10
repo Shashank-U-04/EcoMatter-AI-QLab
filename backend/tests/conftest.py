@@ -5,6 +5,9 @@ import tempfile
 # Must be set before any `app` import (config reads it at module load) so the
 # whole suite stays offline — no live PubChem calls during tests.
 os.environ["PUBCHEM_NOVELTY"] = "0"
+# The suite's auth calls would share one fixed rate-limit window; the limiter
+# itself is unit-tested in test_rate_limit.py.
+os.environ["RATE_LIMIT"] = "0"
 
 import pytest
 from fastapi.testclient import TestClient

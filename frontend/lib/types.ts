@@ -12,6 +12,7 @@ export interface Project {
   name: string;
   domain: Domain;
   created_at: string;
+  share_token: string | null;
   property_targets: PropertyTarget[];
 }
 
@@ -72,6 +73,35 @@ export interface SynthesisRoute {
   note: string;
 }
 
+export interface SharedProject {
+  name: string;
+  domain: Domain;
+  created_at: string;
+  property_targets: PropertyTarget[];
+  run: RunStatus | null;
+  candidates: CandidateSummary[];
+}
+
+export interface ReferenceMolecule {
+  name: string;
+  smiles: string;
+  note: string;
+  formula: string;
+  mol_weight: number;
+  logp: number;
+  tpsa: number;
+  ring_count: number;
+  ester_groups: number;
+  hydroxyl_groups: number;
+  svg: string | null;
+}
+
+export interface GenerationPoint {
+  gen: number;
+  best: number;
+  valid: number;
+}
+
 export interface RunStatus {
   id: number;
   status: "pending" | "running" | "completed" | "failed";
@@ -82,4 +112,5 @@ export interface RunStatus {
   progress_total: number;
   progress_best_fitness: number;
   progress_valid_count: number;
+  progress_history: GenerationPoint[];
 }

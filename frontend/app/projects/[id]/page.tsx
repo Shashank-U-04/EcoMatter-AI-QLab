@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Nav from "@/components/nav";
+import FitnessChart from "@/components/fitness-chart";
 import { BackLink, Badge, Disclaimer, ErrorNote, ScoreBar, SectionLabel } from "@/components/ui";
 import {
+  createShareLink,
   deleteProject,
   downloadReport,
   getProject,
@@ -13,6 +15,7 @@ import {
   latestRun,
   listCandidates,
   renameProject,
+  revokeShareLink,
   startGeneration,
   toggleStar,
 } from "@/lib/api";
@@ -35,6 +38,7 @@ export default function ProjectResults() {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadCandidates = useCallback(async () => {
@@ -98,6 +102,29 @@ export default function ProjectResults() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Delete failed");
       setConfirmDelete(false);
+    }
+  }
+
+  async function shareResults() {
+    if (!project) return;
+    try {
+      const token = project.share_token ?? (await createShareLink(projectId)).share_token;
+      if (!project.share_token) setProject({ ...project, share_token: token });
+      await navigator.clipboard.writeText(`${window.location.origin}/share/${token}`);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Share failed");
+    }
+  }
+
+  async function unshareResults() {
+    if (!project) return;
+    try {
+      await revokeShareLink(projectId);
+      setProject({ ...project, share_token: null });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Revoke failed");
     }
   }
 
@@ -179,6 +206,22 @@ export default function ProjectResults() {
                 <button onClick={() => downloadReport(projectId, "json")} className="btn-ghost px-4 py-2">
                   JSON
                 </button>
+                <button
+                  onClick={shareResults}
+                  className={`btn-ghost px-4 py-2 ${shareCopied ? "text-ember-300" : ""}`}
+                  title="Copy a read-only public link to these results"
+                >
+                  {shareCopied ? "Link copied ✓" : project?.share_token ? "Copy share link" : "Share"}
+                </button>
+                {project?.share_token && (
+                  <button
+                    onClick={unshareResults}
+                    className="btn-ghost px-4 py-2 text-faint hover:text-red-300"
+                    title="Revoke the public link"
+                  >
+                    Unshare
+                  </button>
+                )}
                 <button onClick={regenerate} className="btn-primary">
                   Re-run
                 </button>
@@ -254,6 +297,18 @@ export default function ProjectResults() {
                 </span>
               </div>
             </div>
+            {(run.progress_history?.length ?? 0) >= 2 && (
+              <div className="w-full max-w-2xl">
+                <FitnessChart history={run.progress_history} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {run?.status === "completed" && (run.progress_history?.length ?? 0) >= 2 && (
+          <div className="card reveal mt-8 p-6" style={{ "--d": "90ms" } as React.CSSProperties}>
+            <SectionLabel>Genetic search</SectionLabel>
+            <FitnessChart history={run.progress_history} />
           </div>
         )}
 

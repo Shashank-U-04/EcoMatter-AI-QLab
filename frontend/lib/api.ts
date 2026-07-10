@@ -6,7 +6,9 @@ import {
   Domain,
   Project,
   PropertyTarget,
+  ReferenceMolecule,
   RunStatus,
+  SharedProject,
   SynthesisRoute,
 } from "./types";
 
@@ -77,6 +79,13 @@ export function login(email: string, password: string) {
   return request<{ access_token: string; name: string }>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+}
+
+export function changePassword(currentPassword: string, newPassword: string) {
+  return request<undefined>("/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   });
 }
 
@@ -190,6 +199,23 @@ export interface ModelCard {
 
 export function getModelCards() {
   return request<{ models: ModelCard[] }>("/meta/models");
+}
+
+export function getReferenceLibrary() {
+  return request<{ molecules: ReferenceMolecule[] }>("/meta/reference-library");
+}
+
+// ---- Public share links ----
+export function createShareLink(projectId: number) {
+  return request<{ share_token: string }>(`/projects/${projectId}/share`, { method: "POST" });
+}
+
+export function revokeShareLink(projectId: number) {
+  return request<{ share_token: null }>(`/projects/${projectId}/share`, { method: "DELETE" });
+}
+
+export function getSharedProject(token: string) {
+  return request<SharedProject>(`/share/${encodeURIComponent(token)}`);
 }
 
 // 3D conformer as an MDL MOL block (text), auth-guarded.

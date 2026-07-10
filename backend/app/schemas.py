@@ -1,7 +1,8 @@
 """Pydantic request/response schemas for the REST API."""
+import json
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 # ---- Auth ----
 
@@ -10,7 +11,12 @@ class SignupRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    org: str = ""
+    org: str = Field(default="", max_length=255)
+
+    @field_validator("name", "org")
+    @classmethod
+    def strip_whitespace(cls, value: str) -> str:
+        return value.strip()
 
 
 class LoginRequest(BaseModel):
@@ -25,7 +31,17 @@ class TokenResponse(BaseModel):
     name: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 # ---- Projects ----
+
+
+KNOWN_PROPERTIES = frozenset(
+    {"biodegradability", "thermal_stability", "lightweight", "flexibility", "affordability"}
+)
 
 
 class PropertyTargetIn(BaseModel):
@@ -33,11 +49,34 @@ class PropertyTargetIn(BaseModel):
     target_value: float = Field(ge=0, le=100)
     weight: float = Field(default=1.0, ge=0, le=5)
 
+    @field_validator("property_name")
+    @classmethod
+    def known_property(cls, value: str) -> str:
+        if value not in KNOWN_PROPERTIES:
+            raise ValueError(f"Unknown property; expected one of {sorted(KNOWN_PROPERTIES)}")
+        return value
+
 
 class ProjectCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     domain: str = Field(pattern="^(packaging|ev_component)$")
-    property_targets: list[PropertyTargetIn]
+    property_targets: list[PropertyTargetIn] = Field(min_length=1, max_length=5)
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Project name cannot be blank")
+        return stripped
+
+    @field_validator("property_targets")
+    @classmethod
+    def unique_properties(cls, targets: list[PropertyTargetIn]) -> list[PropertyTargetIn]:
+        names = [t.property_name for t in targets]
+        if len(names) != len(set(names)):
+            raise ValueError("Duplicate property targets")
+        return targets
 
 
 class PropertyTargetOut(PropertyTargetIn):
@@ -52,6 +91,7 @@ class ProjectOut(BaseModel):
     name: str
     domain: str
     created_at: datetime
+    share_token: str | None = None  # owner-only view; None = not shared
     property_targets: list[PropertyTargetOut] = []
 
     class Config:
@@ -59,6 +99,12 @@ class ProjectOut(BaseModel):
 
 
 # ---- Generation & candidates ----
+
+
+class GenerationPoint(BaseModel):
+    gen: int
+    best: float
+    valid: int
 
 
 class RunStatusOut(BaseModel):
@@ -71,6 +117,17 @@ class RunStatusOut(BaseModel):
     progress_total: int = 0
     progress_best_fitness: float = 0.0
     progress_valid_count: int = 0
+    progress_history: list[GenerationPoint] = []
+
+    @field_validator("progress_history", mode="before")
+    @classmethod
+    def parse_history(cls, value):
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.JSONDecodeError:
+                return []
+        return value or []
 
     class Config:
         from_attributes = True
@@ -78,6 +135,14 @@ class RunStatusOut(BaseModel):
 
 class ProjectRename(BaseModel):
     name: str = Field(min_length=1, max_length=255)
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Project name cannot be blank")
+        return stripped
 
 
 class PredictionOut(BaseModel):
@@ -138,3 +203,21 @@ class SynthesisRouteOut(BaseModel):
     building_blocks: int = 0
     flags: list[str] = []
     note: str = ""
+
+
+# ---- Public share links ----
+
+
+class ShareLinkOut(BaseModel):
+    share_token: str | None  # None after revocation
+
+
+class SharedProjectOut(BaseModel):
+    """Read-only public snapshot of a project's latest completed results."""
+
+    name: str
+    domain: str
+    created_at: datetime
+    property_targets: list[PropertyTargetOut] = []
+    run: RunStatusOut | None = None
+    candidates: list[CandidateSummary] = []

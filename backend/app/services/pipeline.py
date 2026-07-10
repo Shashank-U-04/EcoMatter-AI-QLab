@@ -1,5 +1,6 @@
 """Generation-run orchestrator: GA -> predict -> rank -> retrosynthesis for the
 top candidates -> persist. Runs on a worker thread with its own DB session."""
+import json
 import logging
 from datetime import datetime, timezone
 
@@ -37,11 +38,15 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
         run.started_at = datetime.now(timezone.utc)
         db.commit()
 
+        history: list[dict] = []
+
         def report_progress(gen: int, total: int, best: float, valid: int) -> None:
             run.progress_generation = gen
             run.progress_total = total
             run.progress_best_fitness = round(best, 4)
             run.progress_valid_count = valid
+            history.append({"gen": gen, "best": round(best, 4), "valid": valid})
+            run.progress_history = json.dumps(history)
             db.commit()
 
         raw_candidates = run_generation(domain, targets, progress_cb=report_progress)
@@ -152,7 +157,9 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
         run = db.get(GenerationRun, run_id)
         if run is not None:
             run.status = "failed"
-            run.error = str(exc)[:2000]
+            # Client-facing message stays generic; the full traceback is in the
+            # server log above (never leak internals through the API).
+            run.error = "Generation failed unexpectedly. Please re-run; details are logged."
             run.finished_at = datetime.now(timezone.utc)
             db.commit()
     finally:

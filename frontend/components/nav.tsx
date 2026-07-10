@@ -8,6 +8,7 @@ import { clearSession, getToken, getUserName } from "@/lib/api";
 const AUTHED_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/projects/new", label: "New project" },
+  { href: "/library", label: "Library" },
   { href: "/settings", label: "Settings" },
 ];
 
