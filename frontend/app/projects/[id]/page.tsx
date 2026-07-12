@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Nav from "@/components/nav";
 import FitnessChart from "@/components/fitness-chart";
+import PropertyTrends from "@/components/property-trends";
 import { BackLink, Badge, Disclaimer, ErrorNote, ScoreBar, SectionLabel } from "@/components/ui";
 import {
   createShareLink,
@@ -277,7 +278,7 @@ export default function ProjectResults() {
               Evolving candidate molecules — recombining fragments, screening properties…
             </p>
             <div className="w-full max-w-md">
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-raise/5">
                 {run.progress_total > 0 ? (
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-ember-700 to-ember-500 transition-[width] duration-700 ease-out"
@@ -312,6 +313,10 @@ export default function ProjectResults() {
           </div>
         )}
 
+        {run?.status === "completed" && candidates.length > 0 && project && (
+          <PropertyTrends targets={project.property_targets} candidates={candidates} />
+        )}
+
         {run?.status === "completed" && candidates.length > 0 && (
           <>
             <div
@@ -325,7 +330,7 @@ export default function ProjectResults() {
                     key={k}
                     onClick={() => setSortKey(k)}
                     className={`rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-all duration-300 ${
-                      sortKey === k ? "bg-ember-400/10 text-ember-300" : "bg-white/5 text-faint hover:text-dim"
+                      sortKey === k ? "bg-ember-400/10 text-ember-300" : "bg-raise/5 text-faint hover:text-dim"
                     }`}
                   >
                     {k}

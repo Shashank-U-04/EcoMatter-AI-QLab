@@ -209,7 +209,7 @@ export default function NewProject() {
                         className={`rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-wider transition-all duration-300 ${
                           weights[p.key] === w
                             ? "bg-ember-400/15 text-ember-300"
-                            : "bg-white/5 text-faint hover:text-dim"
+                            : "bg-raise/5 text-faint hover:text-dim"
                         }`}
                       >
                         {WEIGHT_LABEL[w]}
@@ -252,7 +252,7 @@ export default function NewProject() {
                       )}
                     </span>
                     <div className="flex items-center gap-3">
-                      <div className="h-1.5 w-36 overflow-hidden rounded-full bg-white/5">
+                      <div className="h-1.5 w-36 overflow-hidden rounded-full bg-raise/5">
                         <div
                           className="h-full rounded-full bg-ember-600"
                           style={{ width: `${values[p.key]}%` }}

@@ -3,9 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import { GenerationPoint } from "@/lib/types";
 
-// Validated against the dark panel surface (#0e0e11): lightness band, chroma,
-// and 3:1 contrast all pass for #1fae60 (theme ember-600).
-const LINE = "#1fae60";
+// Line color per theme (set in globals.css): #1fae60 (ember-600) on the dark
+// panel, #0f7a3d (ember-700) on light — both validated for 3:1 contrast.
+const LINE = "var(--chart-line)";
+const RING = "var(--chart-ring)"; // dot outline, matches the panel surface
+const GRID = "rgb(var(--c-ink) / 0.07)";
+const CROSSHAIR = "rgb(var(--c-ink) / 0.16)";
 
 const W = 640;
 const H = 180;
@@ -88,8 +91,8 @@ export default function FitnessChart({ history }: { history: GenerationPoint[] }
       >
         <defs>
           <linearGradient id="fitness-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={LINE} stopOpacity="0.16" />
-            <stop offset="100%" stopColor={LINE} stopOpacity="0" />
+            <stop offset="0%" style={{ stopColor: LINE }} stopOpacity="0.16" />
+            <stop offset="100%" style={{ stopColor: LINE }} stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -100,7 +103,7 @@ export default function FitnessChart({ history }: { history: GenerationPoint[] }
               x2={W - PAD.right}
               y1={t.y}
               y2={t.y}
-              stroke="rgba(255,255,255,0.06)"
+              style={{ stroke: GRID }}
               strokeWidth="1"
             />
             <text
@@ -128,10 +131,10 @@ export default function FitnessChart({ history }: { history: GenerationPoint[] }
         ))}
 
         <path d={area} fill="url(#fitness-fill)" />
-        <path d={path} fill="none" stroke={LINE} strokeWidth="2" strokeLinejoin="round" />
+        <path d={path} fill="none" style={{ stroke: LINE }} strokeWidth="2" strokeLinejoin="round" />
 
         {/* end value, direct-labeled */}
-        <circle cx={last.x} cy={last.y} r="3.5" fill={LINE} stroke="#0e0e11" strokeWidth="2" />
+        <circle cx={last.x} cy={last.y} r="3.5" style={{ fill: LINE, stroke: RING }} strokeWidth="2" />
         <text
           x={last.x + 8}
           y={last.y + 3}
@@ -149,10 +152,10 @@ export default function FitnessChart({ history }: { history: GenerationPoint[] }
               x2={hover.x}
               y1={PAD.top}
               y2={H - PAD.bottom}
-              stroke="rgba(255,255,255,0.14)"
+              style={{ stroke: CROSSHAIR }}
               strokeWidth="1"
             />
-            <circle cx={hover.x} cy={hover.y} r="4.5" fill={LINE} stroke="#0e0e11" strokeWidth="2" />
+            <circle cx={hover.x} cy={hover.y} r="4.5" style={{ fill: LINE, stroke: RING }} strokeWidth="2" />
           </g>
         )}
       </svg>

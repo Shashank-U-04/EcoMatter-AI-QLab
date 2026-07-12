@@ -13,7 +13,7 @@ export function ScoreBar({ value, label }: { value: number; label?: string }) {
           <span className="font-mono text-xs font-semibold text-ink">{pct.toFixed(0)}</span>
         </div>
       )}
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-raise/5">
         <div
           className="h-full rounded-full transition-[width] duration-700 ease-out"
           style={{
@@ -59,6 +59,33 @@ export function PropertyRow({
   );
 }
 
+export function StatTile({
+  label,
+  value,
+  unit,
+  sub,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  sub?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <div className="truncate font-mono text-[10px] uppercase tracking-wider text-faint">
+        {label}
+      </div>
+      <div className="mt-1 font-display text-2xl text-ink sm:text-3xl">
+        {value}
+        {unit && (
+          <span className="ml-1 font-mono text-xs font-normal text-faint">{unit}</span>
+        )}
+      </div>
+      {sub && <div className="mt-0.5 font-mono text-[10px] text-faint">{sub}</div>}
+    </div>
+  );
+}
+
 export function Badge({
   children,
   tone = "neutral",
@@ -69,7 +96,7 @@ export function Badge({
   const styles =
     tone === "accent"
       ? "border-ember-400/20 bg-ember-400/[0.07] text-ember-300"
-      : "border-edge2 bg-white/[0.04] text-dim";
+      : "border-edge2 bg-raise/[0.04] text-dim";
   return (
     <span
       className={`inline-block rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${styles}`}
