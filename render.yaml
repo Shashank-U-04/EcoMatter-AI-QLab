@@ -1,0 +1,36 @@
+# Render Blueprint — deploys the FastAPI backend + PostgreSQL with one click.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# After the first deploy, set CORS_ORIGINS in the Render dashboard to the
+# Vercel frontend URL (e.g. https://ecomatter-ai-qlab.vercel.app).
+
+services:
+  - type: web
+    name: ecomatter-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.4
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ecomatter-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false # set to the Vercel URL in the dashboard after frontend deploy
+      # Free-tier CPU is slower than a dev laptop; keep GA runs comfortably
+      # inside the request window.
+      - key: GA_TIME_BUDGET_SECONDS
+        value: "90"
+
+databases:
+  - name: ecomatter-db
+    plan: free
+    databaseName: ecomatter
+    user: ecomatter

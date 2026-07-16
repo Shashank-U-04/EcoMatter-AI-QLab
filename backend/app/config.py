@@ -7,6 +7,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATABASE_URL = os.environ.get(
     "DATABASE_URL", f"sqlite:///{(BASE_DIR / 'ecomatter.db').as_posix()}"
 )
+# Managed Postgres (Render, Heroku) hands out plain postgres:// URLs; route
+# them through the psycopg 3 driver SQLAlchemy expects.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-me")
 JWT_ALGORITHM = "HS256"
