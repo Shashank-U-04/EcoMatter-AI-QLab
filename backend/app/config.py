@@ -31,3 +31,10 @@ GA_TIME_BUDGET_SECONDS = int(os.environ.get("GA_TIME_BUDGET_SECONDS", "90"))
 CORS_ORIGINS = os.environ.get(
     "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
 ).split(",")
+
+# Per-IP fixed-window rate limits (requests per minute). Auth endpoints get a
+# strict budget (credential stuffing / signup abuse); everything else a generous
+# one that normal UI polling never hits. RATE_LIMIT=0 disables (tests).
+RATE_LIMIT_ENABLED = os.environ.get("RATE_LIMIT", "1") not in ("0", "false", "False")
+RATE_LIMIT_AUTH_PER_MINUTE = int(os.environ.get("RATE_LIMIT_AUTH_PER_MINUTE", "15"))
+RATE_LIMIT_GENERAL_PER_MINUTE = int(os.environ.get("RATE_LIMIT_GENERAL_PER_MINUTE", "240"))

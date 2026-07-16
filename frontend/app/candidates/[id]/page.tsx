@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/nav";
-import { BackLink, Badge, Disclaimer, ErrorNote, PropertyRow, SectionLabel, Spinner } from "@/components/ui";
+import { BackLink, Badge, Disclaimer, ErrorNote, PropertyRow, SectionLabel, Spinner, StatTile } from "@/components/ui";
 import {
   ApiError,
   fetchImageObjectUrl,
@@ -95,6 +95,11 @@ export default function CandidatePage() {
     );
   }
 
+  const topProperty = [...detail.predictions].sort(
+    (a, b) => b.predicted_value - a.predicted_value
+  )[0];
+  const feedstockCost = detail.explanation.cost_estimate_usd_per_kg;
+
   return (
     <>
       <Nav />
@@ -107,8 +112,6 @@ export default function CandidatePage() {
             <h1 className="font-display text-4xl text-ink">
               Candidate <span className="font-mono font-bold text-ember-400">#{detail.rank}</span>
             </h1>
-            <Badge tone="accent">score {detail.composite_score.toFixed(1)}</Badge>
-            <Badge>structural novelty {(detail.novelty_score * 100).toFixed(0)}%</Badge>
             <span className="font-mono text-[10px] uppercase tracking-wider text-faint">
               {detail.generation_method}
             </span>
@@ -127,13 +130,41 @@ export default function CandidatePage() {
                   href={`https://pubchem.ncbi.nlm.nih.gov/compound/${detail.pubchem_cid}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-edge2 bg-white/[0.04] px-3.5 py-1.5 text-xs text-dim transition-colors hover:border-ember-400/30 hover:text-ink"
+                  className="inline-flex items-center gap-2 rounded-full border border-edge2 bg-raise/[0.04] px-3.5 py-1.5 text-xs text-dim transition-colors hover:border-ember-400/30 hover:text-ink"
                 >
                   Known compound · PubChem CID {detail.pubchem_cid}
                   <span className="text-faint">↗</span>
                 </a>
               )}
             </div>
+          )}
+        </div>
+
+        {/* Vitals strip — the instant "health of this molecule" read */}
+        <div
+          className="card reveal mt-6 grid grid-cols-2 gap-x-6 gap-y-5 px-6 py-5 sm:grid-cols-4"
+          style={{ "--d": "40ms" } as React.CSSProperties}
+        >
+          <StatTile label="Composite score" value={detail.composite_score.toFixed(1)} />
+          {topProperty && (
+            <StatTile
+              label={PROPERTY_LABEL[topProperty.property_name] || topProperty.property_name}
+              value={topProperty.predicted_value.toFixed(0)}
+              unit="/100"
+              sub="strongest property"
+            />
+          )}
+          <StatTile
+            label="Structural novelty"
+            value={(detail.novelty_score * 100).toFixed(0)}
+            unit="%"
+          />
+          {feedstockCost !== null && (
+            <StatTile
+              label="Est. feedstock cost"
+              value={`$${feedstockCost.toFixed(2)}`}
+              unit="/kg"
+            />
           )}
         </div>
 
@@ -201,17 +232,6 @@ export default function CandidatePage() {
                 />
               ))}
             </div>
-            {detail.explanation.cost_estimate_usd_per_kg !== null && (
-              <div className="mt-4 flex items-center justify-between rounded-xl border border-edge2 bg-white/[0.03] px-4 py-2.5">
-                <span className="font-mono text-[11px] uppercase tracking-wider text-dim">
-                  Est. feedstock cost
-                </span>
-                <span className="font-mono text-sm font-bold text-ink">
-                  ${detail.explanation.cost_estimate_usd_per_kg.toFixed(2)}
-                  <span className="ml-1 text-[11px] font-normal text-faint">/kg</span>
-                </span>
-              </div>
-            )}
             {modelCards.map((m) => (
               <p key={m.name} className="mt-2 font-mono text-[10px] leading-relaxed text-faint">
                 {m.name}: {m.algorithm.split(" (")[0]} · test R²={m.test_r2} · {m.dataset}
@@ -359,7 +379,7 @@ export default function CandidatePage() {
                   {route.flags.map((f) => (
                     <li
                       key={f}
-                      className="rounded-full border border-edge2 bg-white/[0.03] px-3 py-1 text-[11px] text-dim"
+                      className="rounded-full border border-edge2 bg-raise/[0.03] px-3 py-1 text-[11px] text-dim"
                     >
                       {f}
                     </li>
@@ -373,7 +393,7 @@ export default function CandidatePage() {
                     className="reveal flex gap-4"
                     style={{ "--d": `${i * 100}ms` } as React.CSSProperties}
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-edge2 bg-white/5 font-mono text-sm font-bold text-ember-300">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-edge2 bg-raise/5 font-mono text-sm font-bold text-ember-300">
                       {s.step}
                     </span>
                     <div className="min-w-0">

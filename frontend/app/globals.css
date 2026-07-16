@@ -2,8 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Theme tokens. Dark is the default (no attribute); light mode is opted into
+ * via <html data-theme="light">. Color channels are stored as raw RGB triplets
+ * so Tailwind opacity modifiers (e.g. border-edge/50) keep working.
+ */
 :root {
   color-scheme: dark;
+
+  --c-void: 6 6 7; /* #060607 */
+  --c-panel: 14 14 17; /* #0e0e11 */
+  --c-panel2: 19 19 24; /* #131318 */
+  --c-edge: 36 36 42; /* #24242a */
+  --c-edge2: 52 52 60; /* #34343c */
+  --c-ink: 241 239 233; /* #f1efe9 */
+  --c-dim: 164 164 173; /* #a4a4ad */
+  --c-faint: 138 138 147; /* #8a8a93 */
+  /* "raise" = hover/track tint over surfaces (white on dark, black on light) */
+  --c-raise: 255 255 255;
+
+  --glass-bg: rgba(14, 14, 17, 0.88);
+  --card-sheen: rgba(255, 255, 255, 0.03);
+  --card-hover-shadow: 0 0 0 1px rgba(62, 224, 110, 0.1), 0 16px 60px rgba(0, 0, 0, 0.55);
+  --shadow-deep: 0 4px 12px rgba(0, 0, 0, 0.45), 0 20px 52px rgba(0, 0, 0, 0.5);
+  --accent-strong: #7ceb6d;
+  --chart-line: #1fae60;
+  --chart-ring: #0e0e11;
+  --grain-opacity: 0.02;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --c-void: 244 244 239; /* #f4f4ef */
+  --c-panel: 252 252 250; /* #fcfcfa */
+  --c-panel2: 240 240 234; /* #f0f0ea */
+  --c-edge: 221 221 212; /* #dddd d4 */
+  --c-edge2: 201 201 192; /* #c9c9c0 */
+  --c-ink: 18 18 22; /* #121216 */
+  --c-dim: 63 63 71; /* #3f3f47 */
+  --c-faint: 88 88 96; /* #585860 */
+  --c-raise: 0 0 0;
+
+  --glass-bg: rgba(252, 252, 250, 0.85);
+  --card-sheen: rgba(255, 255, 255, 0.5);
+  --card-hover-shadow: 0 0 0 1px rgba(15, 122, 61, 0.16), 0 12px 40px rgba(25, 25, 15, 0.12);
+  --shadow-deep: 0 2px 6px rgba(25, 25, 15, 0.05), 0 14px 36px rgba(25, 25, 15, 0.1);
+  --accent-strong: #0f7a3d;
+  --chart-line: #0f7a3d;
+  --chart-ring: #fcfcfa;
+  --grain-opacity: 0.025;
 }
 
 body {
@@ -23,6 +71,12 @@ body::before {
     radial-gradient(900px 600px at -10% 110%, rgba(62, 224, 110, 0.02), transparent 55%);
 }
 
+:root[data-theme="light"] body::before {
+  background-image:
+    radial-gradient(1100px 500px at 85% -10%, rgba(31, 174, 96, 0.07), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(31, 174, 96, 0.045), transparent 55%);
+}
+
 /* Film grain — keeps large dark surfaces from banding, adds texture */
 body::after {
   content: "";
@@ -30,7 +84,7 @@ body::after {
   inset: 0;
   z-index: 50;
   pointer-events: none;
-  opacity: 0.02;
+  opacity: var(--grain-opacity);
   transform: translateZ(0);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -43,19 +97,23 @@ body::after {
 
 .card {
   @apply rounded-card border border-edge bg-panel shadow-deep;
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.03), transparent 40%);
+  background-image: linear-gradient(160deg, var(--card-sheen), transparent 40%);
   transition: border-color 0.3s ease, box-shadow 0.4s ease, transform 0.3s ease;
 }
 
 .card-hover:hover {
   border-color: rgba(62, 224, 110, 0.22);
-  box-shadow: 0 0 0 1px rgba(62, 224, 110, 0.1), 0 16px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: var(--card-hover-shadow);
   transform: translateY(-3px);
+}
+
+:root[data-theme="light"] .card-hover:hover {
+  border-color: rgba(15, 122, 61, 0.35);
 }
 
 .glass {
   @apply rounded-card border border-edge;
-  background: rgba(14, 14, 17, 0.88);
+  background: var(--glass-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -96,7 +154,7 @@ body::after {
 
 .btn-ghost:hover:not(:disabled) {
   border-color: rgba(62, 224, 110, 0.5);
-  color: #7ceb6d;
+  color: var(--accent-strong);
   box-shadow: 0 0 20px rgba(62, 224, 110, 0.06);
 }
 
@@ -111,6 +169,26 @@ body::after {
 
 .label {
   @apply mb-1.5 block font-mono text-[11px] uppercase tracking-[0.14em] text-dim;
+}
+
+/* Light-mode legibility overrides for utility colors tuned on dark */
+:root[data-theme="light"] .text-red-300 {
+  color: #b91c1c;
+}
+
+:root[data-theme="light"] .text-ember-300,
+:root[data-theme="light"] .hover\:text-ember-300:hover,
+:root[data-theme="light"] .group:hover .group-hover\:text-ember-300 {
+  color: #0f7a3d;
+}
+
+:root[data-theme="light"] .text-ember-200,
+:root[data-theme="light"] .hover\:text-ember-200:hover {
+  color: #0c6633;
+}
+
+:root[data-theme="light"] .text-ember-400 {
+  color: #0f7a3d;
 }
 
 /* ---------- Motion ---------- */

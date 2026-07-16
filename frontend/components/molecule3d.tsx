@@ -26,8 +26,10 @@ export default function Molecule3D({ candidateId }: { candidateId: number }) {
         ]);
         if (cancelled || !hostRef.current) return;
         hostRef.current.innerHTML = "";
+        // Match the panel surface of the active theme (canvas can't use CSS vars)
+        const isLight = document.documentElement.dataset.theme === "light";
         const v = $3Dmol.createViewer(hostRef.current, {
-          backgroundColor: "0x0e0e11",
+          backgroundColor: isLight ? "0xfcfcfa" : "0x0e0e11",
         });
         v.addModel(molblock, "sdf");
         v.setStyle({}, {

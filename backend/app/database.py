@@ -29,8 +29,10 @@ _SCHEMA_PATCHES = [
     ("generation_runs", "progress_total", "INTEGER DEFAULT 0"),
     ("generation_runs", "progress_best_fitness", "FLOAT DEFAULT 0"),
     ("generation_runs", "progress_valid_count", "INTEGER DEFAULT 0"),
+    ("generation_runs", "progress_history", "TEXT DEFAULT '[]'"),
     ("candidates", "starred", "INTEGER DEFAULT 0"),
     ("candidates", "pubchem_cid", "INTEGER"),
+    ("projects", "share_token", "VARCHAR(64)"),
 ]
 
 

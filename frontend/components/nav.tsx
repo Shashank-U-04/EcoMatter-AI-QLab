@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clearSession, getToken, getUserName } from "@/lib/api";
+import ThemeToggle from "@/components/theme-toggle";
 
 const AUTHED_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/projects/new", label: "New project" },
+  { href: "/library", label: "Library" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -52,7 +54,7 @@ export default function Nav() {
                   className={`rounded-full px-3.5 py-1.5 transition-all duration-300 ${
                     pathname === l.href
                       ? "bg-ember-400/10 text-ember-300"
-                      : "text-dim hover:bg-white/5 hover:text-ink"
+                      : "text-dim hover:bg-raise/5 hover:text-ink"
                   }`}
                 >
                   {l.label}
@@ -63,10 +65,11 @@ export default function Nav() {
               </span>
               <button
                 onClick={logout}
-                className="rounded-full px-3.5 py-1.5 text-faint transition-colors hover:bg-white/5 hover:text-red-400"
+                className="rounded-full px-3.5 py-1.5 text-faint transition-colors hover:bg-raise/5 hover:text-red-400"
               >
                 Sign out
               </button>
+              <ThemeToggle />
             </>
           ) : (
             <>
@@ -79,6 +82,7 @@ export default function Nav() {
               <Link href="/signup" className="btn-primary px-5 py-1.5">
                 Get started
               </Link>
+              <ThemeToggle />
             </>
           )}
         </nav>

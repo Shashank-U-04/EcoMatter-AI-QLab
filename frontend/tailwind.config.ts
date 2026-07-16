@@ -8,15 +8,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Kanad-derived lab palette
-        void: "#060607",
-        panel: "#0e0e11",
-        panel2: "#131318",
-        edge: "#24242a",
-        edge2: "#34343c",
-        ink: "#eceae4",
-        dim: "#8a8a92",
-        faint: "#6c6c72",
+        // Kanad-derived lab palette — values live in globals.css as CSS
+        // variables so dark (default) and light themes both resolve.
+        void: "rgb(var(--c-void) / <alpha-value>)",
+        panel: "rgb(var(--c-panel) / <alpha-value>)",
+        panel2: "rgb(var(--c-panel2) / <alpha-value>)",
+        edge: "rgb(var(--c-edge) / <alpha-value>)",
+        edge2: "rgb(var(--c-edge2) / <alpha-value>)",
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        dim: "rgb(var(--c-dim) / <alpha-value>)",
+        faint: "rgb(var(--c-faint) / <alpha-value>)",
+        raise: "rgb(var(--c-raise) / <alpha-value>)",
         // Emerald gloss ramp (reference: premium card / quantum branding)
         ember: {
           50: "#e9fbf0",
@@ -38,7 +40,7 @@ const config: Config = {
         card: "1.25rem",
       },
       boxShadow: {
-        deep: "0 4px 12px rgba(0,0,0,.45), 0 20px 52px rgba(0,0,0,.5)",
+        deep: "var(--shadow-deep)",
         glow: "0 0 0 1px rgba(62,224,110,.12), 0 8px 40px rgba(62,224,110,.06)",
         "glow-lg": "0 0 0 1px rgba(62,224,110,.18), 0 12px 60px rgba(62,224,110,.1)",
       },

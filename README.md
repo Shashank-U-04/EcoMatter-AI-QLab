@@ -14,8 +14,9 @@ Anchored on two demo scenarios:
 
 ```
 ┌─────────────────────────────┐
-│      Frontend (Next.js)      │  8 screens: landing, signup, login, dashboard,
-│  app router + Tailwind CSS   │  new-project wizard, results, candidate detail, settings
+│      Frontend (Next.js)      │  10 screens: landing, signup, login, dashboard,
+│  app router + Tailwind CSS   │  new-project wizard, results (+ fitness chart),
+│                              │  candidate detail, reference library, public share, settings
 └──────────────┬───────────────┘
                │ REST (JSON, JWT bearer auth)
 ┌──────────────▼───────────────┐
@@ -31,7 +32,8 @@ Anchored on two demo scenarios:
 │ novelty     real PubChem exact-match check
 │ explain     feature drivers + SHAP + Tanimoto similarity to 30 known monomers
 │ rendering   RDKit 2D → SVG and 3D → MOL block (3Dmol.js viewer)
-│ reports     PDF (reportlab) / CSV / JSON export
+│ reports     PDF (reportlab) / CSV / JSON export + read-only public share links
+│ hardening   per-IP rate limiting, strict input validation, error-message hygiene
 └──────────────┬───────────────┘
                │ SQLAlchemy
       ┌────────▼────────┐
@@ -109,7 +111,16 @@ A generation run finishes in well under 2 minutes (default budget: 90 s, 30 cand
 
 ```bash
 cd backend
-.venv/Scripts/python -m pytest tests/ -q   # 13 tests incl. full end-to-end pipeline
+.venv/Scripts/python -m pytest tests/ -q   # 18 tests incl. full end-to-end pipeline
+```
+
+End-to-end browser tests (Playwright) drive the real signup → generate → detail →
+report → share flow against both live servers:
+
+```bash
+cd frontend
+npx playwright install chromium   # first run only
+npm run e2e                        # boots backend + dev server, runs the suite
 ```
 
 ## API overview
@@ -117,6 +128,7 @@ cd backend
 | Method & path | Purpose |
 |---|---|
 | `POST /auth/signup`, `POST /auth/login` | Create account / get JWT |
+| `POST /auth/change-password` | Change password (verifies current) |
 | `POST /projects`, `GET /projects`, `GET /projects/{id}` | Project + target profile CRUD |
 | `PATCH /projects/{id}`, `DELETE /projects/{id}` | Rename / delete a project (cascade) |
 | `POST /projects/{id}/generate` | Start a generation run (202, background worker) |
@@ -128,7 +140,10 @@ cd backend
 | `GET /candidates/{id}/image` | 2D structure (SVG) |
 | `GET /candidates/{id}/structure3d` | 3D conformer (MOL block) |
 | `GET /projects/{id}/report?format=pdf\|csv\|json` | Export report |
+| `POST /projects/{id}/share`, `DELETE /projects/{id}/share` | Mint / revoke a public share token |
+| `GET /share/{token}` | Public read-only project snapshot (no auth) |
 | `GET /meta/models` | Trained-model cards (algorithm, dataset, test R²) |
+| `GET /meta/reference-library` | 30 seed monomers with RDKit descriptors + 2D SVGs |
 
 ## Conventions
 
@@ -149,6 +164,9 @@ shared or deployed environment. Extra toggles:
   3001 if 3000 is taken, so include both).
 - `RXN_API_KEY` — optional IBM RXN retrosynthesis (unused by default; the local BRICS
   engine with computed green metrics is the standard path).
+- `RATE_LIMIT=0` — disable per-IP rate limiting (tests). Tune with
+  `RATE_LIMIT_AUTH_PER_MINUTE` (default 15) and `RATE_LIMIT_GENERAL_PER_MINUTE`
+  (default 240).
 
 The trained solubility model ships committed under `backend/models/`; retrain it any
 time with `python -m ml.train_solubility` from `backend/`.

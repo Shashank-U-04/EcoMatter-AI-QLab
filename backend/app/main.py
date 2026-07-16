@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import CORS_ORIGINS, STORAGE_DIR
 from .database import Base, apply_schema_patches, engine
-from .routers import auth, candidates, meta, projects, reports
+from .rate_limit import rate_limit_middleware
+from .routers import auth, candidates, meta, projects, reports, share
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,11 +32,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.middleware("http")(rate_limit_middleware)
+
 app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(candidates.router)
 app.include_router(reports.router)
 app.include_router(meta.router)
+app.include_router(share.router)
 
 
 @app.get("/health", tags=["meta"])
