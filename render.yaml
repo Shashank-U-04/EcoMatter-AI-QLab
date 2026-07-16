@@ -24,6 +24,8 @@ services:
         generateValue: true
       - key: CORS_ORIGINS
         sync: false # set to the Vercel URL in the dashboard after frontend deploy
+      - key: FIREBASE_PROJECT_ID
+        sync: false # Firebase console → Project settings → Project ID
       # Free-tier CPU is slower than a dev laptop; keep GA runs comfortably
       # inside the request window.
       - key: GA_TIME_BUDGET_SECONDS

@@ -24,6 +24,18 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class FirebaseLoginRequest(BaseModel):
+    id_token: str = Field(min_length=1)
+    # Optional profile details captured at signup; token claims win when absent.
+    name: str = Field(default="", max_length=120)
+    org: str = Field(default="", max_length=255)
+
+    @field_validator("name", "org")
+    @classmethod
+    def strip_whitespace(cls, value: str) -> str:
+        return value.strip()
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

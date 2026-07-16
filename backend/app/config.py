@@ -21,6 +21,10 @@ JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "1440"))
 STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", BASE_DIR / "storage"))
 DATA_DIR = BASE_DIR / "data"
 
+# Firebase project ID (public) enables /auth/firebase token exchange. Empty
+# keeps classic email/password auth only (local dev, tests).
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "")
+
 # Optional IBM RXN for Chemistry credentials; local BRICS engine is used when absent.
 RXN_API_KEY = os.environ.get("RXN_API_KEY", "")
 

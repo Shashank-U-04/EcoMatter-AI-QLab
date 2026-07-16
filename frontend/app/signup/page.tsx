@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import GoogleButton from "@/components/google-button";
 import Nav from "@/components/nav";
 import { ErrorNote } from "@/components/ui";
-import { saveSession, signup } from "@/lib/api";
+import { firebaseLogin, saveSession, signup } from "@/lib/api";
+import {
+  firebaseEmailSignup,
+  firebaseGoogleLogin,
+  friendlyAuthError,
+  isFirebaseEnabled,
+} from "@/lib/firebase";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -25,11 +32,32 @@ export default function SignupPage() {
     }
     setBusy(true);
     try {
-      const res = await signup(name, email, password, org);
+      if (isFirebaseEnabled()) {
+        const idToken = await firebaseEmailSignup(name, email, password);
+        const res = await firebaseLogin(idToken, name, org);
+        saveSession(res.access_token, res.name, email);
+      } else {
+        const res = await signup(name, email, password, org);
+        saveSession(res.access_token, res.name, email);
+      }
+      router.push("/dashboard");
+    } catch (err) {
+      setError(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function googleSignup() {
+    setError("");
+    setBusy(true);
+    try {
+      const { idToken, name: googleName } = await firebaseGoogleLogin();
+      const res = await firebaseLogin(idToken, googleName, org);
       saveSession(res.access_token, res.name);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed");
+      setError(friendlyAuthError(err));
     } finally {
       setBusy(false);
     }
@@ -69,6 +97,7 @@ export default function SignupPage() {
               {busy ? "Creating…" : "Create account"}
             </button>
           </form>
+          {isFirebaseEnabled() && <GoogleButton onClick={googleSignup} busy={busy} />}
           <p className="mt-5 text-center text-sm text-dim">
             Already have an account?{" "}
             <Link href="/login" className="text-ember-300 transition-colors hover:text-ember-200">

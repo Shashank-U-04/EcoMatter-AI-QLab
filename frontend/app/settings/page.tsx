@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/nav";
 import { ErrorNote, SectionLabel } from "@/components/ui";
-import { changePassword, clearSession, getToken, getUserName } from "@/lib/api";
+import { changePassword, clearSession, getToken, getUserEmail, getUserName } from "@/lib/api";
+import { firebaseResetPassword, firebaseSignOut, friendlyAuthError, isFirebaseEnabled } from "@/lib/firebase";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -76,6 +77,7 @@ export default function Settings() {
           </div>
           <button
             onClick={() => {
+              firebaseSignOut();
               clearSession();
               router.push("/login");
             }}
@@ -85,6 +87,46 @@ export default function Settings() {
           </button>
         </div>
 
+        {isFirebaseEnabled() ? (
+          <div className="card reveal mt-5 p-7" style={{ "--d": "180ms" } as React.CSSProperties}>
+            <div className="overline">Password &amp; security</div>
+            <p className="mt-3 text-sm text-dim">
+              Your password is managed by Firebase. To change it, we&apos;ll email you a
+              secure reset link{getUserEmail() ? ` at ${getUserEmail()}` : ""}.
+            </p>
+            {passwordError && <div className="mt-3"><ErrorNote message={passwordError} /></div>}
+            {passwordSaved && (
+              <p className="mt-3 rounded-xl border border-ember-400/25 bg-ember-400/10 px-4 py-2.5 text-sm text-ember-300">
+                Reset email sent — check your inbox.
+              </p>
+            )}
+            <button
+              type="button"
+              className="btn-primary mt-5 w-full"
+              disabled={saving}
+              onClick={async () => {
+                setPasswordError("");
+                setPasswordSaved(false);
+                const email = getUserEmail();
+                if (!email) {
+                  setPasswordError("Sign out and back in once, then try again.");
+                  return;
+                }
+                setSaving(true);
+                try {
+                  await firebaseResetPassword(email);
+                  setPasswordSaved(true);
+                } catch (err) {
+                  setPasswordError(friendlyAuthError(err));
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? "Sending…" : "Send password reset email"}
+            </button>
+          </div>
+        ) : (
         <form
           onSubmit={submitPasswordChange}
           className="card reveal mt-5 p-7"
@@ -130,6 +172,7 @@ export default function Settings() {
             {saving ? "Saving…" : "Update password"}
           </button>
         </form>
+        )}
         <p
           className="tagline reveal mt-5 text-xs"
           style={{ "--d": "240ms" } as React.CSSProperties}

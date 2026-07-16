@@ -15,15 +15,23 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "ecomatter_token";
 const NAME_KEY = "ecomatter_name";
+const EMAIL_KEY = "ecomatter_email";
 
-export function saveSession(token: string, name: string) {
+export function saveSession(token: string, name: string, email = "") {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(NAME_KEY, name);
+  if (email) localStorage.setItem(EMAIL_KEY, email);
 }
 
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(NAME_KEY);
+  localStorage.removeItem(EMAIL_KEY);
+}
+
+export function getUserEmail(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(EMAIL_KEY);
 }
 
 export function getToken(): string | null {
@@ -79,6 +87,14 @@ export function login(email: string, password: string) {
   return request<{ access_token: string; name: string }>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+  });
+}
+
+// Exchange a Firebase ID token for an app session token.
+export function firebaseLogin(idToken: string, name = "", org = "") {
+  return request<{ access_token: string; name: string }>("/auth/firebase", {
+    method: "POST",
+    body: JSON.stringify({ id_token: idToken, name, org }),
   });
 }
 

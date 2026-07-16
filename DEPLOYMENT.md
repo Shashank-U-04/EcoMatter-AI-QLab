@@ -46,6 +46,24 @@ CORS_ORIGINS=https://<your-vercel-url>
 
 Comma-separate to allow several origins. Save; Render redeploys.
 
+## 4. Firebase login (optional)
+
+Firebase manages signup/login (email/password + Google) and sends
+password-reset emails. Without it, the app uses its built-in auth.
+
+1. https://console.firebase.google.com → create a project (Analytics off).
+2. Build → Authentication → Get started → enable **Email/Password** and
+   **Google** providers.
+3. Authentication → Settings → Authorized domains → add the Vercel domain.
+4. Project settings → Your apps → add a **Web** app → copy the config.
+5. Vercel → Project → Settings → Environment Variables, add (from config):
+   `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`,
+   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` — then
+   redeploy.
+6. Render → `ecomatter-api` → Environment, add `FIREBASE_PROJECT_ID` with the
+   same project ID. No service-account secret is needed: the backend verifies
+   ID tokens against Google's public keys.
+
 ## Free-tier notes
 
 - The Render service **sleeps after 15 min idle**; the first request after

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clearSession, getToken, getUserName } from "@/lib/api";
+import { firebaseSignOut } from "@/lib/firebase";
 import ThemeToggle from "@/components/theme-toggle";
 
 const AUTHED_LINKS = [
@@ -25,6 +26,7 @@ export default function Nav() {
   }, [pathname]);
 
   function logout() {
+    firebaseSignOut();
     clearSession();
     router.push("/login");
   }
