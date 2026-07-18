@@ -78,6 +78,29 @@ def test_reference_library(client):
     assert first["svg"] and "<svg" in first["svg"]
 
 
+def test_project_summary_defaults_for_unrun_project(auth_client):
+    # A project that was never run comes back with null triage fields (so old
+    # clients and never-run projects are unaffected), but last_activity falls
+    # back to the creation time.
+    resp = auth_client.post(
+        "/projects",
+        json={
+            "name": "Never run",
+            "domain": "packaging",
+            "property_targets": [{"property_name": "biodegradability", "target_value": 60}],
+        },
+    )
+    pid = resp.json()["id"]
+    # The create response itself carries the defaults, unchanged for old clients.
+    assert resp.json()["latest_run_status"] is None
+    listing = auth_client.get("/projects").json()
+    p = next(x for x in listing if x["id"] == pid)
+    assert p["latest_run_status"] is None
+    assert p["candidate_count"] is None
+    assert p["top_score"] is None
+    assert p["last_activity"] is not None
+
+
 def test_full_pipeline(auth_client):
     # Create a project with a target profile.
     resp = auth_client.post(
@@ -116,8 +139,20 @@ def test_full_pipeline(auth_client):
     assert "summary" in detail["explanation"]
     assert len(detail["predictions"]) == 5
     assert detail["project_id"] == project_id
+    assert detail["prev_candidate_id"] is None  # rank 1 has no predecessor
     if len(candidates) > 1:  # rank 1 must point at rank 2
         assert detail["next_candidate_id"] == candidates[1]["id"]
+        # ...and rank 2 must point back at rank 1.
+        detail2 = auth_client.get(f"/candidates/{candidates[1]['id']}").json()
+        assert detail2["prev_candidate_id"] == candidates[0]["id"]
+
+    # Dashboard triage summary is populated on the project-list response.
+    listing = auth_client.get("/projects").json()
+    summary = next(p for p in listing if p["id"] == project_id)
+    assert summary["latest_run_status"] == "completed"
+    assert summary["candidate_count"] == len(candidates)
+    assert summary["top_score"] is not None
+    assert summary["last_activity"] is not None
 
     # 2D image renders.
     img = auth_client.get(f"/candidates/{cid}/image")

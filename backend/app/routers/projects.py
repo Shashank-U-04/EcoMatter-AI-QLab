@@ -3,7 +3,7 @@ import secrets
 import threading
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
@@ -61,6 +61,39 @@ def create_project(
     return project
 
 
+def _project_summary(project: Project, db: Session) -> ProjectOut:
+    """Enrich a project with dashboard-triage fields from its runs.
+
+    All added fields are optional; a project with no runs comes back with them
+    as None, so the payload stays compatible with old clients.
+    """
+    out = ProjectOut.model_validate(project)
+    latest = db.scalar(
+        select(GenerationRun)
+        .where(GenerationRun.project_id == project.id)
+        .order_by(GenerationRun.id.desc())
+    )
+    if latest is not None:
+        out.latest_run_status = latest.status
+        out.last_activity = latest.finished_at or latest.started_at or project.created_at
+    else:
+        out.last_activity = project.created_at
+
+    completed = latest_completed_run(project.id, db)
+    if completed is not None:
+        count = db.scalar(
+            select(func.count(Candidate.id)).where(Candidate.run_id == completed.id)
+        )
+        best = db.scalar(
+            select(func.max(Ranking.composite_score))
+            .join(Candidate, Ranking.candidate_id == Candidate.id)
+            .where(Candidate.run_id == completed.id)
+        )
+        out.candidate_count = int(count or 0)
+        out.top_score = round(best, 1) if best is not None else None
+    return out
+
+
 @router.get("", response_model=list[ProjectOut])
 def list_projects(
     user: User = Depends(get_current_user), db: Session = Depends(get_db)
@@ -71,7 +104,7 @@ def list_projects(
         .options(selectinload(Project.property_targets))
         .order_by(Project.created_at.desc())
     ).all()
-    return list(projects)
+    return [_project_summary(p, db) for p in projects]
 
 
 @router.get("/{project_id}", response_model=ProjectOut)

@@ -6,6 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Nav from "@/components/nav";
 import FitnessChart from "@/components/fitness-chart";
 import PropertyTrends from "@/components/property-trends";
+import CandidateCompare from "@/components/candidate-compare";
+import CandidateFilters from "@/components/candidate-filters";
+import StructureThumb from "@/components/structure-thumb";
 import { BackLink, Badge, Disclaimer, ErrorNote, ScoreBar, SectionLabel } from "@/components/ui";
 import {
   createShareLink,
@@ -23,7 +26,15 @@ import {
 import { PROPERTY_LABEL } from "@/lib/properties";
 import { CandidateSummary, Project, RunStatus } from "@/lib/types";
 
-type SortKey = "rank" | "novelty" | "starred";
+type SortKey = "rank" | "distance" | "starred";
+
+const SORT_LABEL: Record<SortKey, string> = {
+  rank: "rank",
+  distance: "reference distance",
+  starred: "starred",
+};
+
+const MAX_COMPARE = 4;
 
 export default function ProjectResults() {
   const router = useRouter();
@@ -40,7 +51,19 @@ export default function ProjectResults() {
   const [nameDraft, setNameDraft] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [comparing, setComparing] = useState(false);
+  const [minFilters, setMinFilters] = useState<Record<string, number>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < MAX_COMPARE) next.add(id);
+      return next;
+    });
+  }
 
   const loadCandidates = useCallback(async () => {
     const list = await listCandidates(projectId);
@@ -79,6 +102,7 @@ export default function ProjectResults() {
   async function regenerate() {
     setError("");
     setCandidates([]);
+    setSelected(new Set());
     await startGeneration(projectId);
     poll();
     if (pollRef.current) clearInterval(pollRef.current);
@@ -143,14 +167,27 @@ export default function ProjectResults() {
     }
   }
 
+  const activeFilters = useMemo(
+    () => Object.entries(minFilters).filter(([, v]) => v > 0),
+    [minFilters]
+  );
+
   const shown = useMemo(() => {
     let list = starredOnly ? candidates.filter((c) => c.starred) : [...candidates];
-    if (sortKey === "novelty") list.sort((a, b) => b.novelty_score - a.novelty_score);
+    if (activeFilters.length > 0) {
+      list = list.filter((c) =>
+        activeFilters.every(([key, min]) => {
+          const pred = c.predictions.find((p) => p.property_name === key);
+          return pred != null && pred.predicted_value >= min;
+        })
+      );
+    }
+    if (sortKey === "distance") list.sort((a, b) => b.novelty_score - a.novelty_score);
     else if (sortKey === "starred")
       list.sort((a, b) => Number(b.starred) - Number(a.starred) || a.rank - b.rank);
     else list.sort((a, b) => a.rank - b.rank);
     return list;
-  }, [candidates, sortKey, starredOnly]);
+  }, [candidates, sortKey, starredOnly, activeFilters]);
 
   const running = run && (run.status === "pending" || run.status === "running");
   const progressPct =
@@ -325,7 +362,7 @@ export default function ProjectResults() {
             >
               <div className="flex items-center gap-2">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-faint">Sort</span>
-                {(["rank", "novelty", "starred"] as SortKey[]).map((k) => (
+                {(["rank", "distance", "starred"] as SortKey[]).map((k) => (
                   <button
                     key={k}
                     onClick={() => setSortKey(k)}
@@ -333,7 +370,7 @@ export default function ProjectResults() {
                       sortKey === k ? "bg-ember-400/10 text-ember-300" : "bg-raise/5 text-faint hover:text-dim"
                     }`}
                   >
-                    {k}
+                    {SORT_LABEL[k]}
                   </button>
                 ))}
               </div>
@@ -348,16 +385,31 @@ export default function ProjectResults() {
               </label>
             </div>
 
+            <div className="reveal mt-4" style={{ "--d": "150ms" } as React.CSSProperties}>
+              <CandidateFilters
+                values={minFilters}
+                onChange={setMinFilters}
+                shownCount={shown.length}
+                totalCount={candidates.length}
+              />
+            </div>
+
             <div className="card reveal mt-4 overflow-hidden" style={{ "--d": "180ms" } as React.CSSProperties}>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-edge text-left font-mono text-[10px] uppercase tracking-[0.15em] text-faint">
+                      <th className="px-3 py-3.5" title="Select to compare">Cmp</th>
                       <th className="px-4 py-3.5" />
                       <th className="px-2 py-3.5">#</th>
                       <th className="px-3 py-3.5">Structure (SMILES)</th>
                       <th className="px-3 py-3.5">Score</th>
-                      <th className="px-3 py-3.5">Novelty</th>
+                      <th
+                        className="px-3 py-3.5"
+                        title="Structural distance from EcoMatter's local reference library — not a novelty claim."
+                      >
+                        Ref. distance
+                      </th>
                       <th className="w-52 px-3 py-3.5">Top property</th>
                       <th />
                     </tr>
@@ -370,8 +422,20 @@ export default function ProjectResults() {
                       return (
                         <tr
                           key={c.id}
-                          className="border-b border-edge/50 transition-colors duration-300 hover:bg-ember-400/5"
+                          className={`border-b border-edge/50 transition-colors duration-300 hover:bg-ember-400/5 ${
+                            selected.has(c.id) ? "bg-ember-400/[0.06]" : ""
+                          }`}
                         >
+                          <td className="px-3 py-4">
+                            <input
+                              type="checkbox"
+                              className="accent-ember-500"
+                              checked={selected.has(c.id)}
+                              disabled={!selected.has(c.id) && selected.size >= MAX_COMPARE}
+                              onChange={() => toggleSelect(c.id)}
+                              aria-label={`Select candidate ${c.rank} to compare`}
+                            />
+                          </td>
                           <td className="px-4 py-4">
                             <button
                               onClick={() => star(c)}
@@ -390,8 +454,13 @@ export default function ProjectResults() {
                           >
                             {c.rank}
                           </td>
-                          <td className="max-w-xs truncate px-3 py-4 font-mono text-xs text-dim">
-                            {c.smiles}
+                          <td className="px-3 py-4">
+                            <div className="flex items-center gap-3">
+                              <StructureThumb candidateId={c.id} smiles={c.smiles} />
+                              <span className="max-w-[16rem] truncate font-mono text-xs text-dim">
+                                {c.smiles}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-3 py-4 font-mono font-bold text-ink">
                             {c.composite_score.toFixed(1)}
@@ -426,7 +495,9 @@ export default function ProjectResults() {
               </div>
               {shown.length === 0 && (
                 <p className="p-8 text-center text-sm text-dim">
-                  Nothing on the shortlist yet — star candidates to collect them here.
+                  {activeFilters.length > 0
+                    ? "No candidates meet these property floors — relax a filter to see more."
+                    : "Nothing on the shortlist yet — star candidates to collect them here."}
                 </p>
               )}
             </div>
@@ -446,6 +517,41 @@ export default function ProjectResults() {
           </div>
         )}
       </main>
+
+      {/* Compare tray — appears once a candidate is selected */}
+      {selected.size > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-5">
+          <div className="glass flex items-center gap-4 rounded-full px-5 py-3 shadow-glow-lg">
+            <span className="font-mono text-xs text-dim">
+              {selected.size} selected
+              <span className="text-faint"> / {MAX_COMPARE} max</span>
+            </span>
+            <button
+              onClick={() => setComparing(true)}
+              disabled={selected.size < 2}
+              className="btn-primary px-4 py-1.5 text-sm disabled:opacity-40"
+              title={selected.size < 2 ? "Select at least two candidates" : "Compare selected"}
+            >
+              Compare
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="font-mono text-[11px] uppercase tracking-wider text-faint hover:text-ink"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {comparing && (
+        <CandidateCompare
+          candidates={candidates
+            .filter((c) => selected.has(c.id))
+            .sort((a, b) => a.rank - b.rank)}
+          onClose={() => setComparing(false)}
+        />
+      )}
     </>
   );
 }
