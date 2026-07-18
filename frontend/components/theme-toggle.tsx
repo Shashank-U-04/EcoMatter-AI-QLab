@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Theme = "dark" | "light";
+
+// The View Transitions API isn't in every TS DOM lib version yet; describe just
+// the slice we use so we can feature-detect without `any`.
+type DocumentWithViewTransition = Document & {
+  startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+};
 
 function applyTheme(theme: Theme) {
   if (theme === "light") {
@@ -20,25 +26,58 @@ export default function ThemeToggle() {
   // Render a fixed default on the server, read the real theme after mount.
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
     setMounted(true);
   }, []);
 
+  // Anchor the circular reveal at the toggle's centre and size its radius to
+  // reach the farthest screen corner, so the new palette always fills the view.
+  function setRevealOrigin() {
+    const root = document.documentElement;
+    const rect = btnRef.current?.getBoundingClientRect();
+    const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+    const radius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+    root.style.setProperty("--vt-x", `${x}px`);
+    root.style.setProperty("--vt-y", `${y}px`);
+    root.style.setProperty("--vt-r", `${radius}px`);
+  }
+
   function toggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    applyTheme(next);
+    const commit = () => {
+      setTheme(next);
+      applyTheme(next);
+    };
     try {
       localStorage.setItem("theme", next);
     } catch {
       /* storage unavailable (private mode) — theme still applies for the session */
     }
+
+    const doc = document as DocumentWithViewTransition;
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    // Paint-spreading reveal where supported; instant swap otherwise.
+    if (!doc.startViewTransition || prefersReducedMotion) {
+      commit();
+      return;
+    }
+    setRevealOrigin();
+    doc.startViewTransition(commit);
   }
 
   return (
     <button
+      ref={btnRef}
       onClick={toggle}
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       title={theme === "dark" ? "Light mode" : "Dark mode"}
