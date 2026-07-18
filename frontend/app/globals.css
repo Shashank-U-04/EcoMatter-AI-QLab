@@ -218,3 +218,33 @@ body::after {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Paint-spreading theme switch. The toggle wraps the data-theme change in a
+ * View Transition and sets --vt-x / --vt-y (origin point) and --vt-r (reach)
+ * on <html>; the incoming theme is clipped from a zero-radius circle out to
+ * full coverage, so the new palette appears to spread like paint from the
+ * button. Browsers without the View Transitions API (or users who prefer
+ * reduced motion) get an instant swap — that path is handled in JS.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 0;
+}
+::view-transition-new(root) {
+  z-index: 1;
+  animation: theme-spread 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes theme-spread {
+  from {
+    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+  to {
+    clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+}
