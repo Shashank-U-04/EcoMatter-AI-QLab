@@ -14,6 +14,11 @@ export interface Project {
   created_at: string;
   share_token: string | null;
   property_targets: PropertyTarget[];
+  // Dashboard triage summary — present on the project-list response, null elsewhere.
+  latest_run_status?: "pending" | "running" | "completed" | "failed" | null;
+  candidate_count?: number | null;
+  top_score?: number | null;
+  last_activity?: string | null;
 }
 
 export interface Prediction {
@@ -53,6 +58,7 @@ export interface CandidateDetail extends CandidateSummary {
   generation_method: string;
   project_id: number;
   next_candidate_id: number | null;
+  prev_candidate_id: number | null;
   pubchem_cid: number | null; // null unchecked, 0 novel, >0 known compound CID
   explanation: Explanation;
 }

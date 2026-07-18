@@ -61,6 +61,7 @@ def candidate_detail(
     predictions = {p.property_name: p.predicted_value for p in candidate.predictions}
     explanation = build_explanation(mol, _targets_for(candidate, db), predictions)
     next_candidate_id = None
+    prev_candidate_id = None
     if candidate.ranking is not None:
         next_candidate_id = db.scalar(
             select(Candidate.id)
@@ -70,12 +71,21 @@ def candidate_detail(
                 Ranking.rank == candidate.ranking.rank + 1,
             )
         )
+        prev_candidate_id = db.scalar(
+            select(Candidate.id)
+            .join(Ranking, Ranking.candidate_id == Candidate.id)
+            .where(
+                Candidate.run_id == candidate.run_id,
+                Ranking.rank == candidate.ranking.rank - 1,
+            )
+        )
     return CandidateDetail(
         id=candidate.id,
         smiles=candidate.smiles,
         generation_method=candidate.generation_method,
         project_id=candidate.run.project_id,
         next_candidate_id=next_candidate_id,
+        prev_candidate_id=prev_candidate_id,
         pubchem_cid=candidate.pubchem_cid,
         starred=bool(candidate.starred),
         novelty_score=candidate.novelty_score,

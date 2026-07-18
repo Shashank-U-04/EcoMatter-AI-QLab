@@ -105,6 +105,13 @@ class ProjectOut(BaseModel):
     created_at: datetime
     share_token: str | None = None  # owner-only view; None = not shared
     property_targets: list[PropertyTargetOut] = []
+    # Dashboard triage summary — populated only by the project-list endpoint.
+    # Nullable with safe defaults so create/get/rename responses stay unchanged
+    # and old clients ignore the extra fields.
+    latest_run_status: str | None = None  # pending|running|completed|failed|None
+    candidate_count: int | None = None  # candidates in the latest completed run
+    top_score: float | None = None  # best composite score in that run
+    last_activity: datetime | None = None  # most recent run time, else created_at
 
     class Config:
         from_attributes = True
@@ -197,6 +204,7 @@ class CandidateDetail(CandidateSummary):
     generation_method: str
     project_id: int
     next_candidate_id: int | None = None  # next-ranked candidate in the same run
+    prev_candidate_id: int | None = None  # previous-ranked candidate (None for rank 1)
     pubchem_cid: int | None = None  # None unchecked, 0 novel, >0 known compound
     explanation: ExplanationOut
 

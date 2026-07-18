@@ -11,6 +11,7 @@ import {
   fetchImageObjectUrl,
   getCandidate,
   getModelCards,
+  getProject,
   getSynthesis,
   getToken,
   ModelCard,
@@ -31,6 +32,7 @@ export default function CandidatePage() {
   const [imageUrl, setImageUrl] = useState("");
   const [view3d, setView3d] = useState(false);
   const [modelCards, setModelCards] = useState<ModelCard[]>([]);
+  const [targetMap, setTargetMap] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -43,10 +45,26 @@ export default function CandidatePage() {
     setRoute(null);
     setRouteMissing(false);
     setImageUrl("");
+    setTargetMap({});
     setError("");
 
     getCandidate(candidateId)
-      .then(setDetail)
+      .then((d) => {
+        setDetail(d);
+        // Pull the project's targets so each predicted property can show how it
+        // measures up against what the user actually asked for.
+        getProject(d.project_id)
+          .then((proj) =>
+            setTargetMap(
+              Object.fromEntries(
+                proj.property_targets.map((t) => [t.property_name, t.target_value])
+              )
+            )
+          )
+          .catch(() => {
+            /* targets are optional context; predictions still render without them */
+          });
+      })
       .catch((e) => setError(e instanceof Error ? e.message : "Could not load candidate"));
 
     fetchImageObjectUrl(candidateId)
@@ -71,6 +89,20 @@ export default function CandidatePage() {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [candidateId, router]);
+
+  // Walk the ranked list with the arrow keys (ignored while typing in a field).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      if (e.key === "ArrowRight" && detail?.next_candidate_id != null)
+        router.push(`/candidates/${detail.next_candidate_id}`);
+      else if (e.key === "ArrowLeft" && detail?.prev_candidate_id != null)
+        router.push(`/candidates/${detail.prev_candidate_id}`);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [detail?.next_candidate_id, detail?.prev_candidate_id, router]);
 
   if (error) {
     return (
@@ -117,27 +149,34 @@ export default function CandidatePage() {
             </span>
           </div>
 
-          {/* Real, verifiable novelty: checked against PubChem's ~119M compounds */}
-          {detail.pubchem_cid !== null && (
-            <div className="mt-3">
-              {detail.pubchem_cid === 0 ? (
-                <span className="inline-flex items-center gap-2 rounded-full border border-ember-400/25 bg-ember-400/[0.07] px-3.5 py-1.5 text-xs text-ember-200">
-                  <span className="h-1.5 w-1.5 rounded-full bg-ember-400" />
-                  Novel structure — not found in PubChem&apos;s ~119M known compounds
-                </span>
-              ) : (
-                <a
-                  href={`https://pubchem.ncbi.nlm.nih.gov/compound/${detail.pubchem_cid}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-edge2 bg-raise/[0.04] px-3.5 py-1.5 text-xs text-dim transition-colors hover:border-ember-400/30 hover:text-ink"
-                >
-                  Known compound · PubChem CID {detail.pubchem_cid}
-                  <span className="text-faint">↗</span>
-                </a>
-              )}
-            </div>
-          )}
+          {/* PubChem exact-match status — three explicit states so "not checked"
+              is never mistaken for "novel". Derived from the nullable pubchem_cid. */}
+          <div className="mt-3">
+            {detail.pubchem_cid === null ? (
+              <span
+                className="inline-flex items-center gap-2 rounded-full border border-edge2 bg-raise/[0.04] px-3.5 py-1.5 text-xs text-faint"
+                title="A PubChem exact-match lookup was not performed for this candidate."
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-edge2" />
+                PubChem match not checked
+              </span>
+            ) : detail.pubchem_cid === 0 ? (
+              <span className="inline-flex items-center gap-2 rounded-full border border-ember-400/25 bg-ember-400/[0.07] px-3.5 py-1.5 text-xs text-ember-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-ember-400" />
+                No exact match in PubChem&apos;s ~119M known compounds
+              </span>
+            ) : (
+              <a
+                href={`https://pubchem.ncbi.nlm.nih.gov/compound/${detail.pubchem_cid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-edge2 bg-raise/[0.04] px-3.5 py-1.5 text-xs text-dim transition-colors hover:border-ember-400/30 hover:text-ink"
+              >
+                Known in PubChem · CID {detail.pubchem_cid}
+                <span className="text-faint">↗</span>
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Vitals strip — the instant "health of this molecule" read */}
@@ -155,9 +194,10 @@ export default function CandidatePage() {
             />
           )}
           <StatTile
-            label="Structural novelty"
+            label="Reference distance"
             value={(detail.novelty_score * 100).toFixed(0)}
             unit="%"
+            sub="vs local library"
           />
           {feedstockCost !== null && (
             <StatTile
@@ -229,6 +269,7 @@ export default function CandidatePage() {
                   value={p.predicted_value}
                   confidence={p.confidence}
                   modelVersion={p.model_version}
+                  target={targetMap[p.property_name]}
                 />
               ))}
             </div>
@@ -415,15 +456,33 @@ export default function CandidatePage() {
           )}
         </section>
 
-        {detail.next_candidate_id && (
-          <div className="mt-8 text-right">
-            <Link
-              href={`/candidates/${detail.next_candidate_id}`}
-              className="group inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-ember-300 transition-colors hover:text-ember-200"
-            >
-              Next candidate
-              <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-            </Link>
+        {(detail.prev_candidate_id || detail.next_candidate_id) && (
+          <div className="mt-8 flex items-center justify-between">
+            {detail.prev_candidate_id ? (
+              <Link
+                href={`/candidates/${detail.prev_candidate_id}`}
+                className="group inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-ember-300 transition-colors hover:text-ember-200"
+              >
+                <span className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
+                Previous
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="font-mono text-[10px] uppercase tracking-wider text-faint">
+              ← / → to navigate
+            </span>
+            {detail.next_candidate_id ? (
+              <Link
+                href={`/candidates/${detail.next_candidate_id}`}
+                className="group inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-ember-300 transition-colors hover:text-ember-200"
+              >
+                Next candidate
+                <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+              </Link>
+            ) : (
+              <span />
+            )}
           </div>
         )}
       </main>

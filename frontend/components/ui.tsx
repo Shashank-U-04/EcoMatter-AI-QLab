@@ -3,8 +3,17 @@
 import Link from "next/link";
 import { PROPERTY_LABEL } from "@/lib/properties";
 
-export function ScoreBar({ value, label }: { value: number; label?: string }) {
+export function ScoreBar({
+  value,
+  label,
+  target,
+}: {
+  value: number;
+  label?: string;
+  target?: number;
+}) {
   const pct = Math.max(0, Math.min(100, value));
+  const targetPct = target != null ? Math.max(0, Math.min(100, target)) : null;
   return (
     <div className="w-full">
       {label && (
@@ -13,14 +22,24 @@ export function ScoreBar({ value, label }: { value: number; label?: string }) {
           <span className="font-mono text-xs font-semibold text-ink">{pct.toFixed(0)}</span>
         </div>
       )}
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-raise/5">
-        <div
-          className="h-full rounded-full transition-[width] duration-700 ease-out"
-          style={{
-            width: `${pct}%`,
-            backgroundImage: "linear-gradient(90deg, #1d8a4e, #3bbd6c)",
-          }}
-        />
+      <div className="relative h-1.5 w-full">
+        <div className="h-full w-full overflow-hidden rounded-full bg-raise/5">
+          <div
+            className="h-full rounded-full transition-[width] duration-700 ease-out"
+            style={{
+              width: `${pct}%`,
+              backgroundImage: "linear-gradient(90deg, #1d8a4e, #3bbd6c)",
+            }}
+          />
+        </div>
+        {targetPct != null && (
+          <span
+            className="absolute top-1/2 h-3 w-[2px] -translate-y-1/2 rounded-full bg-ink/70"
+            style={{ left: `calc(${targetPct}% - 1px)` }}
+            title={`Target ${targetPct.toFixed(0)}`}
+            aria-hidden
+          />
+        )}
       </div>
     </div>
   );
@@ -38,18 +57,27 @@ export function PropertyRow({
   value,
   confidence,
   modelVersion,
+  target,
 }: {
   name: string;
   value: number;
   confidence?: number;
   modelVersion?: string;
+  target?: number;
 }) {
   const tag = modelVersion ? MODEL_TAGS[modelVersion] ?? "model" : undefined;
   const isReal = modelVersion !== undefined && modelVersion !== "heuristic-v1";
+  const gap = target != null ? value - target : null;
   return (
     <div className="py-2.5">
-      <ScoreBar value={value} label={PROPERTY_LABEL[name] || name} />
+      <ScoreBar value={value} label={PROPERTY_LABEL[name] || name} target={target} />
       <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-faint">
+        {gap != null &&
+          (gap >= 0 ? (
+            <span className="text-ember-400/80">✓ meets target ({target})</span>
+          ) : (
+            <span className="text-amber-300/80">{Math.abs(gap).toFixed(0)} below target ({target})</span>
+          ))}
         {confidence !== undefined && <span>confidence {(confidence * 100).toFixed(0)}%</span>}
         {tag && (
           <span className={isReal ? "text-ember-400/70" : "text-faint"}>· {tag}</span>
@@ -102,6 +130,31 @@ export function Badge({
       className={`inline-block rounded-full border px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${styles}`}
     >
       {children}
+    </span>
+  );
+}
+
+// Run-status pill for dashboard triage. Conveys state with an icon + text label,
+// never colour alone (accessibility), plus a dot for quick scanning.
+const RUN_STATUS_STYLE: Record<
+  string,
+  { label: string; icon: string; dot: string; text: string }
+> = {
+  completed: { label: "Ready", icon: "✓", dot: "bg-ember-400", text: "text-ember-300" },
+  running: { label: "Running", icon: "◍", dot: "bg-sky-400 animate-pulse", text: "text-sky-300" },
+  pending: { label: "Queued", icon: "◔", dot: "bg-sky-400 animate-pulse", text: "text-sky-300" },
+  failed: { label: "Failed", icon: "!", dot: "bg-red-400", text: "text-red-300" },
+  draft: { label: "Not run", icon: "○", dot: "bg-edge2", text: "text-faint" },
+};
+
+export function RunStatusBadge({ status }: { status?: string | null }) {
+  const s = RUN_STATUS_STYLE[status || "draft"] ?? RUN_STATUS_STYLE.draft;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border border-edge2 bg-raise/[0.04] px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider ${s.text}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} aria-hidden />
+      {s.label}
     </span>
   );
 }
