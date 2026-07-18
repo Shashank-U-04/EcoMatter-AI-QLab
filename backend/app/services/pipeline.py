@@ -18,6 +18,7 @@ from .prediction import (
 )
 from .solubility import predict_solubility
 from .pubchem import lookup_cid
+from .polymerization import assess, to_row
 from .ranking import composite_score, rank_candidates
 from .retrosynthesis import plan_route, route_to_json
 from .similarity import max_reference_similarity
@@ -91,6 +92,9 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
                     "novelty": item["novelty"],
                     "predictions": predictions,
                     "composite_score": composite_score(values, targets, item["novelty"]),
+                    # Cheap, offline, deterministic structural screen — safe to run
+                    # for every candidate (unlike the network novelty check).
+                    "polymerization": assess(mol),
                 }
             )
 
@@ -129,6 +133,8 @@ def execute_run(run_id: int, domain: str, targets: list[dict]) -> None:
                     rank=item["rank"],
                 )
             )
+            if "polymerization" in item:
+                db.add(to_row(candidate.id, item["polymerization"]))
             if item["rank"] <= ROUTES_FOR_TOP_N:
                 route = plan_route(item["smiles"])
                 if route is not None:

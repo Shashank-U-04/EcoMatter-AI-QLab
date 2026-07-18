@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Nav from "@/components/nav";
 import { Badge, ErrorNote, RunStatusBadge, SectionLabel, Spinner } from "@/components/ui";
-import { getToken, listProjects } from "@/lib/api";
+import { deleteProject, getToken, listProjects } from "@/lib/api";
 import { DOMAINS } from "@/lib/properties";
 import { Project } from "@/lib/types";
 
@@ -42,6 +42,18 @@ export default function Dashboard() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+
+  async function remove(id: number) {
+    try {
+      await deleteProject(id);
+      setProjects((ps) => ps?.filter((p) => p.id !== id) ?? null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setConfirmId(null);
+    }
+  }
 
   useEffect(() => {
     if (!getToken()) {
@@ -159,36 +171,64 @@ export default function Dashboard() {
 
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {shown.map((p, i) => (
-                <Link
+                <div
                   key={p.id}
-                  href={`/projects/${p.id}`}
-                  className="card card-hover reveal flex flex-col p-6"
+                  className="group relative reveal"
                   style={{ "--d": `${Math.min(i * 60, 400)}ms` } as React.CSSProperties}
                 >
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <h3 className="font-display text-xl leading-snug text-ink">{p.name}</h3>
-                    <Badge>{DOMAIN_LABEL[p.domain] || p.domain}</Badge>
-                  </div>
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <RunStatusBadge status={p.latest_run_status} />
-                    {p.latest_run_status === "completed" &&
-                      p.candidate_count != null && (
-                        <span className="font-mono text-[11px] text-dim">
-                          {p.candidate_count} candidate{p.candidate_count === 1 ? "" : "s"}
-                          {p.top_score != null && (
-                            <>
-                              {" · best "}
-                              <b className="text-ink">{p.top_score.toFixed(1)}</b>
-                            </>
-                          )}
-                        </span>
-                      )}
-                  </div>
-                  <p className="mt-auto font-mono text-[11px] tracking-wide text-faint">
-                    {new Date(p.last_activity ?? p.created_at).toLocaleDateString()} ·{" "}
-                    {p.property_targets.length} targets
-                  </p>
-                </Link>
+                  <Link href={`/projects/${p.id}`} className="card card-hover flex h-full flex-col p-6">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <h3 className="font-display text-xl leading-snug text-ink">{p.name}</h3>
+                      <Badge>{DOMAIN_LABEL[p.domain] || p.domain}</Badge>
+                    </div>
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <RunStatusBadge status={p.latest_run_status} />
+                      {p.latest_run_status === "completed" &&
+                        p.candidate_count != null && (
+                          <span className="font-mono text-[11px] text-dim">
+                            {p.candidate_count} candidate{p.candidate_count === 1 ? "" : "s"}
+                            {p.top_score != null && (
+                              <>
+                                {" · best "}
+                                <b className="text-ink">{p.top_score.toFixed(1)}</b>
+                              </>
+                            )}
+                          </span>
+                        )}
+                    </div>
+                    <p className="mt-auto font-mono text-[11px] tracking-wide text-faint">
+                      {new Date(p.last_activity ?? p.created_at).toLocaleDateString()} ·{" "}
+                      {p.property_targets.length} targets
+                    </p>
+                  </Link>
+
+                  {confirmId === p.id ? (
+                    <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full border border-red-500/30 bg-void/90 px-2.5 py-1 text-[11px] backdrop-blur">
+                      <span className="text-red-300">Delete?</span>
+                      <button
+                        onClick={() => remove(p.id)}
+                        className="font-bold text-red-300 underline underline-offset-2 hover:text-red-200"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(null)}
+                        className="text-dim hover:text-ink"
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmId(p.id)}
+                      aria-label={`Delete ${p.name}`}
+                      title="Delete project"
+                      className="absolute right-2 top-2 rounded-full border border-edge2 bg-void/80 px-2 py-1 text-xs text-faint opacity-0 backdrop-blur transition-all duration-200 hover:text-red-300 focus:opacity-100 group-hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
 

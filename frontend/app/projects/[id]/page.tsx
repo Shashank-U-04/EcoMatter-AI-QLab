@@ -9,6 +9,7 @@ import PropertyTrends from "@/components/property-trends";
 import CandidateCompare from "@/components/candidate-compare";
 import CandidateFilters from "@/components/candidate-filters";
 import StructureThumb from "@/components/structure-thumb";
+import { PolymerBadge } from "@/components/polymerization";
 import { BackLink, Badge, Disclaimer, ErrorNote, ScoreBar, SectionLabel } from "@/components/ui";
 import {
   createShareLink,
@@ -18,6 +19,7 @@ import {
   getToken,
   latestRun,
   listCandidates,
+  listRuns,
   renameProject,
   revokeShareLink,
   startGeneration,
@@ -54,6 +56,21 @@ export default function ProjectResults() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [comparing, setComparing] = useState(false);
   const [minFilters, setMinFilters] = useState<Record<string, number>>({});
+  const [runs, setRuns] = useState<RunStatus[] | null>(null);
+  const [showRuns, setShowRuns] = useState(false);
+
+  async function toggleRunHistory() {
+    if (showRuns) {
+      setShowRuns(false);
+      return;
+    }
+    setShowRuns(true);
+    try {
+      setRuns(await listRuns(projectId));
+    } catch {
+      /* history is non-critical; leave the panel empty on failure */
+    }
+  }
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function toggleSelect(id: number) {
@@ -354,6 +371,79 @@ export default function ProjectResults() {
           <PropertyTrends targets={project.property_targets} candidates={candidates} />
         )}
 
+        {run?.status === "completed" && (
+          <div className="reveal mt-6">
+            <button
+              onClick={toggleRunHistory}
+              className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-faint transition-colors hover:text-dim"
+              aria-expanded={showRuns}
+            >
+              Run history
+              <span className={`transition-transform duration-300 ${showRuns ? "rotate-180" : ""}`}>
+                ▾
+              </span>
+            </button>
+            {showRuns && (
+              <div className="card mt-3 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-edge text-left font-mono text-[10px] uppercase tracking-[0.15em] text-faint">
+                        <th className="px-4 py-3">Run</th>
+                        <th className="px-3 py-3">Status</th>
+                        <th className="px-3 py-3">When</th>
+                        <th className="px-3 py-3">Generations</th>
+                        <th className="px-3 py-3">Best fitness</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(runs ?? []).map((r) => (
+                        <tr key={r.id} className="border-b border-edge/50">
+                          <td className="px-4 py-3 font-mono text-dim">#{r.id}</td>
+                          <td className="px-3 py-3">
+                            <span
+                              className={
+                                r.status === "completed"
+                                  ? "text-ember-300"
+                                  : r.status === "failed"
+                                    ? "text-red-300"
+                                    : "text-sky-300"
+                              }
+                            >
+                              {r.status}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 font-mono text-xs text-faint">
+                            {r.finished_at
+                              ? new Date(r.finished_at).toLocaleString()
+                              : r.started_at
+                                ? new Date(r.started_at).toLocaleString()
+                                : "—"}
+                          </td>
+                          <td className="px-3 py-3 font-mono text-dim">
+                            {r.progress_total > 0 ? r.progress_generation + "/" + r.progress_total : "—"}
+                          </td>
+                          <td className="px-3 py-3 font-mono text-dim">
+                            {r.progress_best_fitness > 0
+                              ? (r.progress_best_fitness * 100).toFixed(1) + "%"
+                              : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {runs !== null && runs.length === 0 && (
+                  <p className="p-6 text-center text-sm text-dim">No runs recorded yet.</p>
+                )}
+                {runs === null && (
+                  <p className="p-6 text-center text-sm text-dim">Loading run history…</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {run?.status === "completed" && candidates.length > 0 && (
           <>
             <div
@@ -457,9 +547,16 @@ export default function ProjectResults() {
                           <td className="px-3 py-4">
                             <div className="flex items-center gap-3">
                               <StructureThumb candidateId={c.id} smiles={c.smiles} />
-                              <span className="max-w-[16rem] truncate font-mono text-xs text-dim">
-                                {c.smiles}
-                              </span>
+                              <div className="min-w-0">
+                                <span className="block max-w-[16rem] truncate font-mono text-xs text-dim">
+                                  {c.smiles}
+                                </span>
+                                {c.classification && (
+                                  <span className="mt-1.5 inline-block">
+                                    <PolymerBadge classification={c.classification} />
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-3 py-4 font-mono font-bold text-ink">

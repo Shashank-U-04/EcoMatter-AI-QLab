@@ -14,9 +14,19 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "dev-secret-change-me")
+ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
+
+_DEFAULT_JWT_SECRET = "dev-secret-change-me"
+JWT_SECRET = os.environ.get("JWT_SECRET", _DEFAULT_JWT_SECRET)
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "1440"))
+
+# Fail fast rather than ship a guessable token secret to production. Local dev and
+# tests (ENVIRONMENT unset) keep the convenient default.
+if ENVIRONMENT == "production" and JWT_SECRET == _DEFAULT_JWT_SECRET:
+    raise RuntimeError(
+        "JWT_SECRET must be set to a strong, unique value when ENVIRONMENT=production"
+    )
 
 STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", BASE_DIR / "storage"))
 DATA_DIR = BASE_DIR / "data"

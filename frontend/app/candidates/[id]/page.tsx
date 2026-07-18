@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Nav from "@/components/nav";
 import { BackLink, Badge, Disclaimer, ErrorNote, PropertyRow, SectionLabel, Spinner, StatTile } from "@/components/ui";
+import PolymerizationPanel from "@/components/polymerization";
 import {
   ApiError,
   fetchImageObjectUrl,
@@ -376,6 +377,13 @@ export default function CandidatePage() {
             )}
           </section>
         </div>
+
+        {/* Polymerisation feasibility */}
+        {detail.polymerization && (
+          <div className="mt-6">
+            <PolymerizationPanel data={detail.polymerization} />
+          </div>
+        )}
 
         {/* Synthesis route */}
         <section className="card reveal mt-6 p-6" style={{ "--d": "400ms" } as React.CSSProperties}>

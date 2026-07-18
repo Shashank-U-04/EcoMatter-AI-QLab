@@ -10,12 +10,14 @@ from ..models import Candidate, Project, Ranking, User
 from ..schemas import (
     CandidateDetail,
     ExplanationOut,
+    PolymerizationAssessmentOut,
     PredictionOut,
     SynthesisRouteOut,
 )
 from ..security import get_current_user
 from ..services.descriptors import mol_from_smiles
 from ..services.explainability import build_explanation
+from ..services.polymerization import assess, row_to_dict, to_row
 from ..services.rendering import smiles_to_molblock_3d, smiles_to_svg
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
@@ -29,6 +31,7 @@ def _owned_candidate(candidate_id: int, user: User, db: Session) -> Candidate:
             selectinload(Candidate.predictions),
             selectinload(Candidate.ranking),
             selectinload(Candidate.synthesis_route),
+            selectinload(Candidate.polymerization),
             selectinload(Candidate.run),
         )
     )
@@ -60,6 +63,20 @@ def candidate_detail(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Structure could not be parsed")
     predictions = {p.property_name: p.predicted_value for p in candidate.predictions}
     explanation = build_explanation(mol, _targets_for(candidate, db), predictions)
+
+    # Polymerisation feasibility: reuse the stored assessment, or compute it lazily
+    # for candidates generated before this feature and persist for next time. A
+    # write race (unique candidate_id) is harmless — fall back to the computed dict.
+    if candidate.polymerization is not None:
+        poly_data = row_to_dict(candidate.polymerization)
+    else:
+        poly_data = assess(mol)
+        try:
+            db.add(to_row(candidate.id, poly_data))
+            db.commit()
+        except Exception:
+            db.rollback()
+
     next_candidate_id = None
     prev_candidate_id = None
     if candidate.ranking is not None:
@@ -93,6 +110,7 @@ def candidate_detail(
         rank=candidate.ranking.rank if candidate.ranking else 0,
         predictions=[PredictionOut.model_validate(p) for p in candidate.predictions],
         explanation=ExplanationOut(**explanation),
+        polymerization=PolymerizationAssessmentOut(**poly_data),
     )
 
 
