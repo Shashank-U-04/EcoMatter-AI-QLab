@@ -28,6 +28,26 @@ export interface Prediction {
   model_version: string;
 }
 
+export type PolymerClassification =
+  | "ab_monomer"
+  | "ring_opening_monomer"
+  | "diacid_comonomer"
+  | "diol_comonomer"
+  | "diamine_comonomer"
+  | "unsupported"
+  | "flagged";
+
+export interface PolymerizationAssessment {
+  classification: PolymerClassification;
+  feasibility_score: number;
+  polymer_family: string | null;
+  co_monomer_requirement: string;
+  supported_reaction_types: string[];
+  reasons: string[];
+  warnings: string[];
+  rule_version: string;
+}
+
 export interface CandidateSummary {
   id: number;
   smiles: string;
@@ -36,6 +56,8 @@ export interface CandidateSummary {
   rank: number;
   starred: boolean;
   predictions: Prediction[];
+  classification?: PolymerClassification | null;
+  polymer_family?: string | null;
 }
 
 export interface SimilarMolecule {
@@ -61,6 +83,7 @@ export interface CandidateDetail extends CandidateSummary {
   prev_candidate_id: number | null;
   pubchem_cid: number | null; // null unchecked, 0 novel, >0 known compound CID
   explanation: Explanation;
+  polymerization: PolymerizationAssessment | null;
 }
 
 export interface SynthesisStep {

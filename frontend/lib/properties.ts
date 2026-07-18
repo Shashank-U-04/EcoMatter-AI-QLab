@@ -18,6 +18,50 @@ export const PROPERTY_LABEL: Record<string, string> = Object.fromEntries(
   PROPERTIES.map((p) => [p.key, p.label])
 );
 
+// Human-readable presentation for polymerisation-feasibility classifications.
+// tone drives colour: "good" = supported single monomer, "info" = needs a
+// co-monomer, "warn" = manual review, "muted" = no supported family.
+export const POLYMER_CLASS_META: Record<
+  string,
+  { label: string; tone: "good" | "info" | "warn" | "muted"; blurb: string }
+> = {
+  ab_monomer: {
+    label: "Self-polymerising",
+    tone: "good",
+    blurb: "Carries complementary reactive groups — can polymerise on its own.",
+  },
+  ring_opening_monomer: {
+    label: "Ring-opening monomer",
+    tone: "good",
+    blurb: "A strained ring that can open and chain-extend into a polymer.",
+  },
+  diacid_comonomer: {
+    label: "Diacid co-monomer",
+    tone: "info",
+    blurb: "Needs a diol or diamine partner to build a polymer.",
+  },
+  diol_comonomer: {
+    label: "Diol co-monomer",
+    tone: "info",
+    blurb: "Needs a diacid or diisocyanate partner to build a polymer.",
+  },
+  diamine_comonomer: {
+    label: "Diamine co-monomer",
+    tone: "info",
+    blurb: "Needs a diacid or diacyl partner to build a polymer.",
+  },
+  flagged: {
+    label: "Needs manual review",
+    tone: "warn",
+    blurb: "Supported chemistry, but a structural concern warrants expert review.",
+  },
+  unsupported: {
+    label: "No supported family",
+    tone: "muted",
+    blurb: "Valid molecule, but no supported packaging polymerisation route was found.",
+  },
+};
+
 export const DOMAINS: { key: Domain; label: string; blurb: string; emoji: string }[] = [
   {
     key: "packaging",

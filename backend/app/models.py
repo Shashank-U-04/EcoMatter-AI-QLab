@@ -105,6 +105,9 @@ class Candidate(Base):
     synthesis_route: Mapped["SynthesisRoute | None"] = relationship(
         back_populates="candidate", cascade="all, delete-orphan", uselist=False
     )
+    polymerization: Mapped["PolymerizationAssessment | None"] = relationship(
+        back_populates="candidate", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class Prediction(Base):
@@ -144,6 +147,28 @@ class SynthesisRoute(Base):
     confidence: Mapped[float] = mapped_column(Float, default=0.5)
 
     candidate: Mapped[Candidate] = relationship(back_populates="synthesis_route")
+
+
+class PolymerizationAssessment(Base):
+    """Rule-based packaging-polymerisation feasibility for a candidate. Additive:
+    created lazily and never blocks candidate/generation reads if absent."""
+
+    __tablename__ = "polymerization_assessments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    candidate_id: Mapped[int] = mapped_column(
+        ForeignKey("candidates.id"), unique=True, index=True
+    )
+    classification: Mapped[str] = mapped_column(String(40))
+    feasibility_score: Mapped[int] = mapped_column(Integer, default=0)
+    polymer_family: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    co_monomer_requirement: Mapped[str] = mapped_column(String(80), default="n/a")
+    reasons_json: Mapped[str] = mapped_column(Text, default="[]")
+    warnings_json: Mapped[str] = mapped_column(Text, default="[]")
+    rule_version: Mapped[str] = mapped_column(String(40), default="polymer-feasibility-v1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    candidate: Mapped[Candidate] = relationship(back_populates="polymerization")
 
 
 class Report(Base):

@@ -146,6 +146,18 @@ def test_full_pipeline(auth_client):
         detail2 = auth_client.get(f"/candidates/{candidates[1]['id']}").json()
         assert detail2["prev_candidate_id"] == candidates[0]["id"]
 
+    # Polymerisation feasibility assessment is attached and self-explaining.
+    poly = detail["polymerization"]
+    assert poly is not None
+    assert poly["classification"] in {
+        "ab_monomer", "ring_opening_monomer", "diacid_comonomer",
+        "diol_comonomer", "diamine_comonomer", "unsupported", "flagged",
+    }
+    assert poly["rule_version"] == "polymer-feasibility-v1"
+    assert isinstance(poly["reasons"], list) and poly["reasons"]
+    # The compact classification is also surfaced on the candidate-list summary.
+    assert "classification" in candidates[0]
+
     # Dashboard triage summary is populated on the project-list response.
     listing = auth_client.get("/projects").json()
     summary = next(p for p in listing if p["id"] == project_id)

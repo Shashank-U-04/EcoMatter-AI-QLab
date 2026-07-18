@@ -2,7 +2,7 @@
 import json
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 # ---- Auth ----
 
@@ -94,8 +94,7 @@ class ProjectCreate(BaseModel):
 class PropertyTargetOut(PropertyTargetIn):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectOut(BaseModel):
@@ -113,8 +112,7 @@ class ProjectOut(BaseModel):
     top_score: float | None = None  # best composite score in that run
     last_activity: datetime | None = None  # most recent run time, else created_at
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---- Generation & candidates ----
@@ -148,8 +146,7 @@ class RunStatusOut(BaseModel):
                 return []
         return value or []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProjectRename(BaseModel):
@@ -170,8 +167,18 @@ class PredictionOut(BaseModel):
     confidence: float
     model_version: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PolymerizationAssessmentOut(BaseModel):
+    classification: str
+    feasibility_score: int
+    polymer_family: str | None = None
+    co_monomer_requirement: str = "n/a"
+    supported_reaction_types: list[str] = []
+    reasons: list[str] = []
+    warnings: list[str] = []
+    rule_version: str = "polymer-feasibility-v1"
 
 
 class CandidateSummary(BaseModel):
@@ -182,6 +189,10 @@ class CandidateSummary(BaseModel):
     rank: int
     starred: bool = False
     predictions: list[PredictionOut]
+    # Compact polymerisation-feasibility badge for the results table; None until
+    # the candidate has been assessed (additive, tolerated absent by old clients).
+    classification: str | None = None
+    polymer_family: str | None = None
 
 
 class SimilarMolecule(BaseModel):
@@ -207,6 +218,7 @@ class CandidateDetail(CandidateSummary):
     prev_candidate_id: int | None = None  # previous-ranked candidate (None for rank 1)
     pubchem_cid: int | None = None  # None unchecked, 0 novel, >0 known compound
     explanation: ExplanationOut
+    polymerization: PolymerizationAssessmentOut | None = None  # None if not assessed
 
 
 class SynthesisStep(BaseModel):

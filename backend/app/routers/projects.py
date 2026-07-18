@@ -228,7 +228,11 @@ def candidate_summaries(run_id: int, db: Session) -> list[CandidateSummary]:
     candidates = db.scalars(
         select(Candidate)
         .where(Candidate.run_id == run_id)
-        .options(selectinload(Candidate.predictions), selectinload(Candidate.ranking))
+        .options(
+            selectinload(Candidate.predictions),
+            selectinload(Candidate.ranking),
+            selectinload(Candidate.polymerization),
+        )
     ).all()
     summaries = [
         CandidateSummary(
@@ -239,6 +243,8 @@ def candidate_summaries(run_id: int, db: Session) -> list[CandidateSummary]:
             rank=c.ranking.rank if c.ranking else 0,
             starred=bool(c.starred),
             predictions=[PredictionOut.model_validate(p) for p in c.predictions],
+            classification=c.polymerization.classification if c.polymerization else None,
+            polymer_family=c.polymerization.polymer_family if c.polymerization else None,
         )
         for c in candidates
     ]
